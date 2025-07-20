@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import readline from 'node:readline';
+import { Command } from 'commander';
 import { exec } from 'node:child_process';
 import { promisify } from 'node:util';
 import { getProjectCloneUrl, getMergeRequestDetails, getMergeRequestDiff, getChangedFiles, getUnresolvedDiscussions, postCommentToMergeRequest, postLineCommentToMergeRequest } from './api/gitlab.js';
@@ -7,8 +7,15 @@ import { cloneRepository } from './services/git.js';
 import { runCodeReview } from './services/llm.js';
 import { createTemporaryDirectory, cleanupDirectory, readFilesForContext } from './utils/file-handler.js';
 import config from './config.js';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
 
-const execPromise = promisify(exec);
+const __filename = fileURLToPath(import.meta.url),
+	__dirname = path.dirname(__filename),
+	packageJson = JSON.parse(readFileSync(path.join(__dirname, 'package.json'), 'utf8')),
+
+	execPromise = promisify(exec);
 
 async function checkBinaryExists(binaryName) {
 	try {
@@ -53,7 +60,7 @@ function parseGitLabUrl(url) {
 	}
 }
 
-async function main() {
+async function performReview(mrUrl, llmChoice) {
 	if (!process.env.GITLAB_PRIVATE_TOKEN) {
 		throw new Error(
 			'GITLAB_PRIVATE_TOKEN environment variable is not set. Please set it to your GitLab private token.',
@@ -61,21 +68,8 @@ async function main() {
 	}
 
 	let temporaryDirectory = null;
-	const rl = readline.createInterface({
-		input: process.stdin,
-		output: process.stdout,
-	});
 
 	try {
-		let mrUrl = process.argv[2],
-			llmChoice = process.argv[3];
-
-		if (!mrUrl) {
-			mrUrl = await new Promise((resolve) => {
-				rl.question('Please enter the GitLab Merge Request URL: ', resolve);
-			});
-		}
-
 		// Check available LLMs
 		const availableLlms = await getAvailableLlms();
 
@@ -83,28 +77,21 @@ async function main() {
 			throw new Error('No LLM binaries found. Please install Claude CLI or Gemini CLI.');
 		}
 
+		// Validate LLM choice
+		if (llmChoice && !availableLlms.includes(llmChoice.toLowerCase())) {
+			throw new Error(`Invalid LLM choice "${llmChoice}". Available options: ${availableLlms.join(', ')}`);
+		}
+
+		// Auto-select LLM if not provided
 		if (!llmChoice) {
 			if (availableLlms.length === 1) {
 				llmChoice = availableLlms[0];
 				console.log(`Using ${llmChoice} (only available LLM)`);
 			} else {
-				const availableOptions = availableLlms.join('/'),
-					defaultLlm = availableLlms[0];
-
-				llmChoice = await new Promise((resolve) => {
-					rl.question(`Choose LLM (${availableOptions}) [default: ${defaultLlm}]: `, resolve);
-				});
-				if (!llmChoice) {
-					llmChoice = defaultLlm;
-				}
+				llmChoice = availableLlms[0]; // Default to first available
+				console.log(`Using ${llmChoice} (default LLM)`);
 			}
 		}
-
-		if (!availableLlms.includes(llmChoice.toLowerCase())) {
-			throw new Error(`Invalid LLM choice "${llmChoice}". Available options: ${availableLlms.join(', ')}`);
-		}
-
-		rl.close();
 
 		const { gitlabUrl, projectId, mergeRequestIid } = parseGitLabUrl(mrUrl);
 
@@ -245,8 +232,67 @@ async function main() {
 		if (temporaryDirectory) {
 			await cleanupDirectory(temporaryDirectory);
 		}
-		rl.close();
 	}
 }
 
-main();
+// Commander CLI setup
+const program = new Command();
+
+program
+	.name('gitlab-mr-reviewer')
+	.description('Automated GitLab MR code reviews using various LLM providers')
+	.version(packageJson.version);
+
+program
+	.command('review')
+	.description('Review a GitLab Merge Request')
+	.argument('[url]', 'GitLab Merge Request URL')
+	.option('-l, --llm <provider>', 'LLM provider to use (auto-detected if not specified)')
+	.option('--list-llms', 'List available LLM providers and exit')
+	.action(async(url, options) => {
+		if (options.listLlms) {
+			const availableLlms = await getAvailableLlms();
+			if (availableLlms.length === 0) {
+				console.log('No LLM binaries found. Please install one of: claude, gemini, openai, ollama, chatgpt, llama, or gh (for copilot)');
+			} else {
+				console.log('Available LLM providers:');
+				for (const llm of availableLlms) {
+					console.log(`  - ${llm}`);
+				}
+			}
+			return;
+		}
+
+		if (!url) {
+			console.error('Error: missing required argument "url"');
+			process.exit(1);
+		}
+
+		await performReview(url, options.llm);
+	});
+
+// Add a separate command for listing LLMs
+program
+	.command('list-llms')
+	.description('List available LLM providers')
+	.action(async() => {
+		const availableLlms = await getAvailableLlms();
+		if (availableLlms.length === 0) {
+			console.log('No LLM binaries found. Please install one of: claude, gemini, openai, ollama, chatgpt, llama, or gh (for copilot)');
+		} else {
+			console.log('Available LLM providers:');
+			for (const llm of availableLlms) {
+				console.log(`  - ${llm}`);
+			}
+		}
+	});
+
+// Support legacy usage without subcommand
+if (process.argv.length >= 3 && !process.argv[2].startsWith('-') && !['review', 'help', '--help', '-h', '--version', '-V', 'list-llms'].includes(process.argv[2])) {
+	// Legacy mode: gitlab-mr-reviewer <url> [llm]
+	const url = process.argv[2],
+		llm = process.argv[3];
+	await performReview(url, llm);
+} else {
+	program.parse();
+}
