@@ -24,6 +24,8 @@ export async function getBaseBranch(currentBranch) {
 
 			try {
 				await execPromise(`git rev-parse --verify ${baseBranch}`);
+				// Double-check the branch exists and is valid
+				await execPromise(`git show-ref --verify refs/heads/${baseBranch}`);
 				return baseBranch;
 			} catch {
 				// Branch doesn't exist, try next one
@@ -62,7 +64,7 @@ export async function getBranchDiff(currentBranch, baseBranch) {
 export async function getChangedFilesLocal(currentBranch, baseBranch) {
 	try {
 		const { stdout } = await execPromise(`git diff --name-only ${baseBranch}...${currentBranch}`);
-		return stdout.trim().split('\n').filter(file => file.trim().length > 0);
+		return stdout.trim().split('\n').filter(file => file.trim());
 	} catch (error) {
 		throw new Error(`Failed to get changed files between ${baseBranch} and ${currentBranch}: ${error.message}`);
 	}
@@ -70,10 +72,22 @@ export async function getChangedFilesLocal(currentBranch, baseBranch) {
 
 export async function readLocalFilesForContext(filePaths, repoRoot = '.') {
 	let context = '';
+	const MAX_FILE_SIZE = 1024 * 1024; // 1MB limit
+
 	for (const filePath of filePaths) {
 		try {
 			const fullPath = path.resolve(repoRoot, filePath),
-				content = await readFile(fullPath, 'utf8');
+
+				// Check file size before reading
+				{ stat } = await import('node:fs/promises'),
+				stats = await stat(fullPath);
+
+			if (stats.size > MAX_FILE_SIZE) {
+				console.warn(`Warning: Skipping ${filePath} (file too large: ${stats.size} bytes)`);
+				continue;
+			}
+
+			const content = await readFile(fullPath, 'utf8');
 			context += `--- ${filePath} ---\n${content}\n\n`;
 		} catch (error) {
 			console.warn(`Warning: Could not read file ${filePath}: ${error.message}`);

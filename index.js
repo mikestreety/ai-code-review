@@ -145,6 +145,15 @@ async function checkBinaryExists(binaryName) {
 	}
 }
 
+function isGitLabUrl(input) {
+	try {
+		const url = new URL(input);
+		return url.protocol === 'http:' || url.protocol === 'https:';
+	} catch {
+		return false;
+	}
+}
+
 async function getAvailableLlms() {
 	const availableLlms = [];
 
@@ -161,7 +170,7 @@ async function getAvailableLlms() {
 async function determineBranchesForLocalReview(urlOrBranch, options) {
 	let currentBranch, baseBranch;
 
-	if (urlOrBranch && !urlOrBranch.startsWith('http')) {
+	if (urlOrBranch && !isGitLabUrl(urlOrBranch)) {
 		// Treat as branch name
 		currentBranch = urlOrBranch;
 		baseBranch = options.base ? options.base : (await getBaseBranch(currentBranch));
@@ -172,10 +181,9 @@ async function determineBranchesForLocalReview(urlOrBranch, options) {
 		currentBranch = await getCurrentBranch();
 		baseBranch = options.base;
 	} else {
-		// Prompt for branches
-		const branchInfo = await promptForBranches();
-		currentBranch = branchInfo.currentBranch;
-		baseBranch = branchInfo.baseBranch;
+		// Use current branch and auto-detect base
+		currentBranch = await getCurrentBranch();
+		baseBranch = await getBaseBranch(currentBranch);
 	}
 
 	return { currentBranch, baseBranch };
