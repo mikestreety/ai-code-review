@@ -170,17 +170,15 @@ export async function handleOutput(outputFormat, parsedReview, llmChoice, gitlab
 			writeFileSync(fileName, html);
 			console.log(`\n✓ HTML report generated: ${fileName}`);
 			console.log(`\nSummary: ${parsedReview.comments.length} comments found`);
-
 			break;
 		}
 		case 'cli': {
 			outputCliFormat(parsedReview, llmChoice);
-
 			break;
 		}
 		case 'gitlab': {
 			if (!gitlabParameters) {
-				throw new Error('GitLab parameters required for GitLab output');
+				throw new Error('GitLab parameters required for GitLab output. Use --output html or --output cli for local reviews.');
 			}
 			await outputToGitLab(
 				parsedReview,
@@ -192,9 +190,10 @@ export async function handleOutput(outputFormat, parsedReview, llmChoice, gitlab
 				gitlabParameters.startSha,
 				gitlabParameters.headSha,
 			);
-
 			break;
 		}
-	// No default
+		default: {
+			throw new Error(`Unsupported output format: ${outputFormat}`);
+		}
 	}
 }

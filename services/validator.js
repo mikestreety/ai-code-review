@@ -23,6 +23,20 @@ export function validateOutputFormat(outputFormat) {
 	}
 }
 
+export function validateReviewMode(mode) {
+	const validModes = ['local', 'gitlab'];
+	if (!validModes.includes(mode)) {
+		throw new Error(`Invalid review mode "${mode}". Valid options: ${validModes.join(', ')}`);
+	}
+}
+
+export function validateLocalOutputFormat(outputFormat) {
+	const validFormats = ['html', 'cli'];
+	if (!validFormats.includes(outputFormat)) {
+		throw new Error(`Invalid output format for local review "${outputFormat}". Valid options: ${validFormats.join(', ')} (GitLab posting not available for local repos)`);
+	}
+}
+
 export function parseGitLabUrl(url) {
 	try {
 		const urlObject = new URL(url),

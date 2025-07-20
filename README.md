@@ -6,15 +6,17 @@
 
 ---
 
-Automated GitLab Merge Request code reviews using various AI/LLM providers.
+AI-powered code reviews for GitLab Merge Requests and local git branches using various LLM providers.
 
 ## Features
 
 - 🤖 **Multi-LLM Support**: Works with Claude, Gemini, OpenAI, Ollama, ChatGPT, Llama, and GitHub Copilot
-- 🔍 **Smart Detection**: Automatically detects available LLM binaries on your system
+- 🌍 **Dual Mode Support**: Review GitLab Merge Requests OR local git branch changes
+- 🔍 **Smart Detection**: Automatically detects available LLM binaries and git branches
 - 📝 **Comprehensive Reviews**: Provides detailed code analysis with line-specific comments
-- 🛡️ **Conflict Prevention**: Checks for unresolved discussions before proceeding
+- 🛡️ **Conflict Prevention**: Checks for unresolved discussions before proceeding (GitLab mode)
 - 🎯 **Interactive CLI**: Professional command-line interface with helpful prompts
+- 📊 **Multiple Output Formats**: HTML reports, CLI output, or direct GitLab posting
 - ⚡ **Fast Setup**: Simple installation and configuration
 
 ## Installation
@@ -22,8 +24,9 @@ Automated GitLab Merge Request code reviews using various AI/LLM providers.
 ### Prerequisites
 
 1. **Node.js**: Version 16 or higher
-2. **GitLab Access Token**: Personal access token with appropriate permissions
-3. **LLM CLI Tool**: At least one of the following:
+2. **Git Repository**: For local mode, run from within a git repository
+3. **GitLab Access Token**: Personal access token with appropriate permissions (GitLab mode only)
+4. **LLM CLI Tool**: At least one of the following:
    - [Claude CLI](https://claude.ai/code)
    - [Gemini CLI](https://ai.google.dev/)
    - [OpenAI CLI](https://platform.openai.com/docs/guides/cli)
@@ -44,11 +47,13 @@ Automated GitLab Merge Request code reviews using various AI/LLM providers.
    npm install
    ```
 
-3. **Configure environment**:
+3. **Configure environment** (GitLab mode only):
    Create a `.env` file in the project root:
    ```bash
    GITLAB_PRIVATE_TOKEN=your_gitlab_token_here
    ```
+   
+   **Note**: Local mode doesn't require GitLab token configuration.
 
 4. **Verify LLM availability**:
    ```bash
@@ -60,17 +65,23 @@ Automated GitLab Merge Request code reviews using various AI/LLM providers.
 ### Command Structure
 
 ```bash
-# Fully interactive mode (prompts for URL, LLM, and output format)
+# Fully interactive mode (prompts for review mode, then appropriate options)
 npm start
 
-# Interactive mode with command (prompts for URL, LLM, and output format)
+# Interactive mode with command
 npm start review
 
-# Direct URL (prompts for LLM and output format)
-npm start review <merge-request-url>
+# Local branch review (compare current branch with base)
+npm start review --mode local
 
-# Specify all options
-npm start review <merge-request-url> --llm claude --output html
+# GitLab MR review
+npm start review <merge-request-url> --mode gitlab
+
+# Specify all options for local review
+npm start review my-feature-branch --mode local --base main --llm claude --output html
+
+# Specify all options for GitLab review
+npm start review <merge-request-url> --mode gitlab --llm claude --output gitlab
 
 # List available LLMs
 npm start list-llms
@@ -79,14 +90,16 @@ npm start list-llms
 ### All Available Options
 
 ```bash
-npm start review [url] [options]
+npm start review [url_or_branch] [options]
 
 Arguments:
-  url                    GitLab Merge Request URL (optional, will prompt if missing)
+  url_or_branch          GitLab MR URL or local branch name (optional, will prompt if missing)
 
 Options:
-  -l, --llm <provider>   LLM provider: claude, gemini, openai, ollama, chatgpt, llama, copilot (will prompt if not specified)
-  -o, --output <format>  Output format: gitlab, html, cli (will prompt if not specified)
+  -m, --mode <mode>      Review mode: local (compare branches) or gitlab (MR review)
+  -b, --base <branch>    Base branch for local comparison (default: auto-detect)
+  -l, --llm <provider>   LLM provider: claude, gemini, openai, ollama, chatgpt, llama, copilot
+  -o, --output <format>  Output format: gitlab (GitLab mode), html, cli
   --list-llms            List available LLM providers and exit
   -h, --help             Display help information
   -V, --version          Display version number
@@ -98,78 +111,119 @@ Options:
 ```bash
 npm start
 # Prompts for:
-# - GitLab Merge Request URL
+# - Review mode (local/gitlab)
+# - Branch information OR GitLab MR URL
 # - LLM provider (from available options)
-# - Output format (gitlab/html/cli)
+# - Output format (html/cli for local, gitlab/html/cli for GitLab)
 ```
 
-#### 2. Interactive with Command
+#### 2. Local Branch Review Examples
+
+**Compare current branch with auto-detected base:**
 ```bash
-npm start review
-# Prompts for:
-# - GitLab Merge Request URL (if not provided)
-# - LLM provider (from available options)
-# - Output format (gitlab/html/cli)
+npm start review --mode local
+# Automatically detects current branch and suggests base branch (main/master/develop)
 ```
 
-#### 3. Specify URL, Choose Everything Else
+**Compare specific branch with base:**
 ```bash
-npm start review https://gitlab.example.com/project/repo/-/merge_requests/123
-# Prompts for:
-# - LLM provider (from available options)
-# - Output format (gitlab/html/cli)
+npm start review my-feature-branch --mode local --base main
+# Compares my-feature-branch with main branch
 ```
 
-#### 4. Complete Command with All Options
+**Complete local review with all options:**
 ```bash
-npm start review https://gitlab.example.com/project/repo/-/merge_requests/123 --llm claude --output html
-# No prompts - runs directly with specified options
+npm start review --mode local --base main --llm claude --output html
+# Generates HTML report comparing current branch with main using Claude
 ```
 
-#### 5. Generate Different Output Formats
+**Local review with CLI output:**
 ```bash
-# Post comments to GitLab (default)
-npm start review <url> --output gitlab
-
-# Generate HTML report file
-npm start review <url> --output html
-
-# Show CLI linter-style output
-npm start review <url> --output cli
+npm start review my-feature --mode local --llm gemini --output cli
+# Shows linter-style output in console
 ```
 
-#### 6. Specify LLM Provider
+#### 3. GitLab MR Review Examples
+
+**Interactive GitLab review:**
 ```bash
-# Use Claude
-npm start review <url> --llm claude
+npm start review --mode gitlab
+# Prompts for GitLab MR URL, LLM, and output format
+```
+
+**Direct GitLab MR URL:**
+```bash
+npm start review https://gitlab.example.com/project/repo/-/merge_requests/123 --mode gitlab
+# Prompts for LLM and output format
+```
+
+**Complete GitLab review with all options:**
+```bash
+npm start review https://gitlab.example.com/project/repo/-/merge_requests/123 --mode gitlab --llm claude --output gitlab
+# Posts comments directly to GitLab MR
+```
+
+**Generate HTML report from GitLab MR:**
+```bash
+npm start review <gitlab-url> --mode gitlab --llm openai --output html
+# Downloads MR data and generates offline HTML report
+```
+
+#### 4. Output Format Examples
+
+**HTML Report (recommended for local reviews):**
+```bash
+npm start review --mode local --output html
+# Generates beautiful standalone HTML file: code-review-[timestamp].html
+```
+
+**CLI Output (great for CI/CD):**
+```bash
+npm start review --mode local --output cli
+# Shows ESLint-style output: file:line label: message
+```
+
+**GitLab Posting (GitLab mode only):**
+```bash
+npm start review <gitlab-url> --mode gitlab --output gitlab
+# Posts line-specific comments and summary to the MR
+```
+
+#### 5. LLM Provider Examples
+```bash
+# Use Claude (recommended)
+npm start review --mode local --llm claude
 
 # Use Gemini
-npm start review <url> --llm gemini
+npm start review --mode local --llm gemini
 
 # Use OpenAI
-npm start review <url> --llm openai
+npm start review --mode local --llm openai
 
 # Use local Ollama
-npm start review <url> --llm ollama
+npm start review --mode local --llm ollama
 ```
 
-#### 7. Check Available Providers
+#### 6. Check Available Providers
 ```bash
 npm start list-llms
 # Output:
 # Available LLM providers:
-#   - gemini
 #   - claude
+#   - gemini
 #   - openai (if installed)
+#   - ollama (if installed)
 ```
 
 ### Command Options Reference
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `[url]` | Argument | *prompted* | GitLab Merge Request URL |
+| `[url_or_branch]` | Argument | *prompted* | GitLab MR URL or local branch name |
+| `-m, --mode <mode>` | Option | *prompted* | Review mode: `local` or `gitlab` |
+| `-b, --base <branch>` | Option | *auto-detect* | Base branch for local comparison |
 | `-l, --llm <provider>` | Option | *prompted* | LLM provider: `claude`, `gemini`, `openai`, `ollama`, `chatgpt`, `llama`, `copilot` |
-| `-o, --output <format>` | Option | *prompted* | Output format: `gitlab`, `html`, `cli` |
+| `-o, --output <format>` | Option | *prompted* | Output format: `gitlab` (GitLab mode only), `html`, `cli` |
 | `--list-llms` | Flag | - | List available LLM providers and exit |
 | `-h, --help` | Flag | - | Display help information |
 | `-V, --version` | Flag | - | Display version number |
@@ -178,15 +232,24 @@ npm start list-llms
 
 The tool will interactively prompt for missing required information:
 
-1. **URL Prompt**: If no URL provided as argument
-2. **LLM Provider Prompt**: If no `--llm` specified, shows numbered list of available providers:
+1. **Review Mode Prompt**: If no `--mode` specified, shows options:
+   - `local` - Compare local git branches (default)
+   - `gitlab` - Review GitLab Merge Request
+
+2. **Branch Selection** (Local mode):
+   - **Current Branch**: Automatically detected
+   - **Base Branch**: Auto-suggests main/master/develop, allows custom input
+
+3. **URL Prompt** (GitLab mode): If no URL provided as argument
+
+4. **LLM Provider Prompt**: If no `--llm` specified, shows numbered list of available providers:
    - Automatically detects which LLM CLI tools are installed
    - Shows default option (first available)
    - Allows selection by number
-3. **Output Format Prompt**: If no `--output` specified, shows options:
-   - `gitlab` - Post comments directly to GitLab MR (requires GitLab token)
-   - `html` - Generate beautiful HTML report file
-   - `cli` - Show linter-style console output
+
+5. **Output Format Prompt**: If no `--output` specified, shows appropriate options:
+   - **Local mode**: `html` (default), `cli`
+   - **GitLab mode**: `gitlab` (default), `html`, `cli`
 
 ## Configuration
 
@@ -212,10 +275,40 @@ The tool automatically detects which LLM CLI tools are installed:
 
 ## Complete Workflow
 
+### Local Mode Workflow
+
 ### 1. Input Collection
-- **URL**: Provided as argument or prompted interactively
+- **Review Mode**: Local branch comparison
+- **Branch Info**: Current branch (auto-detected) and base branch (auto-suggested)
 - **LLM Provider**: Prompted from available CLI tools, or specified with `--llm`
-- **Output Format**: Prompted interactively or specified with `--output`
+- **Output Format**: Prompted for HTML or CLI (GitLab posting not available)
+
+### 2. Validation & Setup
+- Validates current directory is a git repository
+- Detects current branch and suggests appropriate base branch
+- Detects available LLM CLI tools on the system
+
+### 3. Local Repository Analysis
+- Generates diff between current branch and base branch
+- Identifies changed files between branches
+- Reads full file contents for better context
+
+### 4. AI-Powered Review
+- Sends code diff and context to selected LLM
+- Uses Conventional Comments format for structured feedback
+- Focuses on critical issues: bugs, security, performance
+
+### 5. Output Generation
+- **HTML Output**: Generates beautiful standalone report
+- **CLI Output**: Shows linter-style console output
+
+### GitLab Mode Workflow
+
+### 1. Input Collection
+- **Review Mode**: GitLab Merge Request review
+- **MR URL**: Provided as argument or prompted interactively
+- **LLM Provider**: Prompted from available CLI tools, or specified with `--llm`
+- **Output Format**: Prompted for GitLab, HTML, or CLI
 
 ### 2. Validation & Setup
 - Validates GitLab private token is set
@@ -276,22 +369,44 @@ The tool supports three output formats:
 
 ### Common Issues
 
-1. **"No LLM binaries found"**:
+#### Local Mode Issues
+
+1. **"Current directory is not a git repository"**:
+   - Run the command from within a git repository
+   - Ensure you have `.git` directory in your project
+
+2. **"No differences found between branches"**:
+   - Check that your current branch has commits different from the base branch
+   - Use `git log base-branch..current-branch` to verify differences
+
+3. **"Failed to get current branch"**:
+   - Ensure you're not in a detached HEAD state
+   - Switch to a proper branch with `git checkout branch-name`
+
+#### GitLab Mode Issues
+
+4. **"No LLM binaries found"**:
    - Install at least one LLM CLI tool
    - Ensure the CLI is in your system PATH
    - Run `npm start list-llms` to verify detection
 
-2. **"GITLAB_PRIVATE_TOKEN not set"**:
+5. **"GITLAB_PRIVATE_TOKEN not set"**:
    - Create a `.env` file with your GitLab token
    - Ensure the token has appropriate API permissions
 
-3. **"Failed to parse GitLab URL"**:
+6. **"Failed to parse GitLab URL"**:
    - Verify the MR URL format: `https://gitlab.example.com/group/project/-/merge_requests/123`
    - Ensure the MR exists and is accessible
 
-4. **"Unresolved discussions found"**:
+7. **"Unresolved discussions found"**:
    - Resolve all discussion threads in the MR before running the review
    - This prevents duplicate or conflicting feedback
+
+#### General Issues
+
+8. **"Invalid output format for local review"**:
+   - Local reviews only support `html` and `cli` output formats
+   - GitLab posting is not available for local reviews
 
 ### Debug Mode
 

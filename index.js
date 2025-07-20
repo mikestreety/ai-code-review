@@ -7,9 +7,10 @@ import { getProjectCloneUrl, getMergeRequestDetails, getMergeRequestDiff, getCha
 import { cloneRepository } from './services/git.js';
 import { runCodeReview } from './services/llm.js';
 import { createTemporaryDirectory, cleanupDirectory, readFilesForContext } from './utils/file-handler.js';
-import { validateEnvironment, validateLlmChoice, validateOutputFormat, parseGitLabUrl } from './services/validator.js';
+import { validateEnvironment, validateLlmChoice, validateOutputFormat, validateReviewMode, validateLocalOutputFormat, parseGitLabUrl } from './services/validator.js';
 import { parseReviewResponse } from './services/review-processor.js';
 import { handleOutput } from './services/output-handlers.js';
+import { validateGitRepository, getCurrentBranch, getBaseBranch, getBranchDiff, getChangedFilesLocal, readLocalFilesForContext, getBranchInfo } from './services/local-git.js';
 import config from './config.js';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -19,6 +20,24 @@ const __filename = fileURLToPath(import.meta.url),
 	__dirname = path.dirname(__filename),
 	packageJson = JSON.parse(readFileSync(path.join(__dirname, 'package.json'), 'utf8')),
 	execPromise = promisify(exec);
+
+async function promptForReviewMode() {
+	const rl = readline.createInterface({
+		input: process.stdin,
+		output: process.stdout,
+	});
+
+	return new Promise((resolve) => {
+		console.log('\nReview mode options:');
+		console.log('  local  - Review local branch changes (compare current branch with base)');
+		console.log('  gitlab - Review GitLab Merge Request (requires MR URL)');
+		rl.question('\nChoose review mode [local/gitlab] (default: local): ', (answer) => {
+			rl.close();
+			const mode = answer.trim().toLowerCase() || 'local';
+			resolve(['local', 'gitlab'].includes(mode) ? mode : 'local');
+		});
+	});
+}
 
 async function promptForUrl() {
 	const rl = readline.createInterface({
@@ -34,7 +53,31 @@ async function promptForUrl() {
 	});
 }
 
-async function promptForOutputFormat() {
+async function promptForBranches() {
+	const rl = readline.createInterface({
+		input: process.stdin,
+		output: process.stdout,
+	});
+
+	try {
+		const currentBranch = await getCurrentBranch(),
+			suggestedBase = await getBaseBranch(currentBranch);
+
+		return new Promise((resolve) => {
+			console.log(`\nCurrent branch: ${currentBranch}`);
+			rl.question(`Base branch to compare against (default: ${suggestedBase}): `, (answer) => {
+				rl.close();
+				const baseBranch = answer.trim() || suggestedBase;
+				resolve({ currentBranch, baseBranch });
+			});
+		});
+	} catch (error) {
+		rl.close();
+		throw error;
+	}
+}
+
+async function promptForOutputFormat(isLocal = false) {
 	const rl = readline.createInterface({
 		input: process.stdin,
 		output: process.stdout,
@@ -42,13 +85,20 @@ async function promptForOutputFormat() {
 
 	return new Promise((resolve) => {
 		console.log('\nOutput format options:');
-		console.log('  gitlab - Post comments directly to GitLab MR (default)');
+		if (!isLocal) {
+			console.log('  gitlab - Post comments directly to GitLab MR (default)');
+		}
 		console.log('  html   - Generate beautiful HTML report file');
 		console.log('  cli    - Show linter-style console output');
-		rl.question('\nChoose output format [gitlab/html/cli] (default: gitlab): ', (answer) => {
+
+		const defaultFormat = isLocal ? 'html' : 'gitlab',
+			validFormats = isLocal ? ['html', 'cli'] : ['gitlab', 'html', 'cli'],
+			formatOptions = isLocal ? 'html/cli' : 'gitlab/html/cli';
+
+		rl.question(`\nChoose output format [${formatOptions}] (default: ${defaultFormat}): `, (answer) => {
 			rl.close();
-			const format = answer.trim().toLowerCase() || 'gitlab';
-			resolve(['gitlab', 'html', 'cli'].includes(format) ? format : 'gitlab');
+			const format = answer.trim().toLowerCase() || defaultFormat;
+			resolve(validFormats.includes(format) ? format : defaultFormat);
 		});
 	});
 }
@@ -106,6 +156,54 @@ async function getAvailableLlms() {
 	}
 
 	return availableLlms;
+}
+
+async function performLocalReview(currentBranch, baseBranch, llmChoice, outputFormat = 'html') {
+	try {
+		// Validate inputs
+		validateLocalOutputFormat(outputFormat);
+
+		const availableLlms = await getAvailableLlms();
+		validateLlmChoice(llmChoice, availableLlms);
+
+		// Validate git repository
+		await validateGitRepository();
+
+		// Get branch information
+		const branchInfo = await getBranchInfo(currentBranch, baseBranch);
+		console.log(`Comparing ${branchInfo.currentBranch} (${branchInfo.currentSha.slice(0, 8)}) with ${branchInfo.baseBranch} (${branchInfo.baseSha.slice(0, 8)})`);
+
+		// Get diff and changed files
+		console.log('Getting local changes...');
+		const diff = await getBranchDiff(currentBranch, baseBranch),
+			changedFiles = await getChangedFilesLocal(currentBranch, baseBranch);
+		console.log(`✓ Found ${changedFiles.length} changed files, diff size: ${diff.length} characters`);
+
+		if (diff.length === 0) {
+			console.log('No differences found between branches.');
+			return;
+		}
+
+		// Read file context
+		console.log('Reading changed files for context...');
+		const fileContext = await readLocalFilesForContext(changedFiles);
+		console.log(`✓ File context prepared, total size: ${fileContext.length} characters`);
+
+		// Run code review
+		console.log(`Running ${llmChoice.toUpperCase()} code review...`);
+		const startTime = Date.now(),
+			review = await runCodeReview(llmChoice, diff, fileContext),
+			endTime = Date.now();
+		console.log(`✓ ${llmChoice.toUpperCase()} code review completed in ${(endTime - startTime) / 1000}s`);
+
+		const parsedReview = parseReviewResponse(review, llmChoice);
+
+		// Handle output (no GitLab params for local)
+		await handleOutput(outputFormat, parsedReview, llmChoice, null);
+	} catch (error) {
+		console.error('\nAn error occurred:', error.message);
+		process.exit(1);
+	}
 }
 
 async function performReview(mrUrl, llmChoice, outputFormat = 'gitlab') {
@@ -241,17 +339,19 @@ const program = new Command();
 
 program
 	.name('gitlab-mr-reviewer')
-	.description('Automated GitLab MR code reviews using various LLM providers')
+	.description('AI-powered code reviews for GitLab MRs and local git branches')
 	.version(packageJson.version);
 
 program
 	.command('review')
-	.description('Review a GitLab Merge Request with AI-powered analysis')
-	.argument('[url]', 'GitLab Merge Request URL (will prompt if not provided)')
+	.description('Review code changes with AI-powered analysis')
+	.argument('[url_or_branch]', 'GitLab MR URL or local branch name (will prompt if not provided)')
+	.option('-m, --mode <mode>', 'Review mode: local (compare branches) or gitlab (MR review)')
+	.option('-b, --base <branch>', 'Base branch for local comparison (default: auto-detect)')
 	.option('-l, --llm <provider>', 'LLM provider to use (will prompt if not specified)')
-	.option('-o, --output <format>', 'Output format: gitlab (post to MR), html (generate report), cli (console output)', 'gitlab')
+	.option('-o, --output <format>', 'Output format: gitlab (post to MR), html (generate report), cli (console output)')
 	.option('--list-llms', 'List available LLM providers and exit')
-	.action(async(url, options) => {
+	.action(async(urlOrBranch, options) => {
 		if (options.listLlms) {
 			const availableLlms = await getAvailableLlms();
 			if (availableLlms.length === 0) {
@@ -265,34 +365,95 @@ program
 			return;
 		}
 
+		// Determine review mode
+		let reviewMode = options.mode;
+		if (!process.argv.includes('--mode') && !process.argv.includes('-m')) {
+			reviewMode = await promptForReviewMode();
+		}
+
 		try {
-			validateOutputFormat(options.output);
+			validateReviewMode(reviewMode);
 		} catch (error) {
 			console.error('Error:', error.message);
 			process.exit(1);
 		}
 
-		if (!url) {
-			url = await promptForUrl();
-			if (!url) {
-				console.error('Error: URL is required');
+		if (reviewMode === 'local') {
+			// Local branch review
+			let currentBranch, baseBranch;
+
+			if (urlOrBranch && !urlOrBranch.startsWith('http')) {
+				// Treat as branch name
+				currentBranch = urlOrBranch;
+				baseBranch = options.base || await getBaseBranch(currentBranch);
+			} else if (urlOrBranch) {
+				console.error('Error: URL provided but local mode selected. Use --mode gitlab for GitLab URLs.');
 				process.exit(1);
+			} else {
+				// Prompt for branches
+				const branchInfo = await promptForBranches();
+				currentBranch = branchInfo.currentBranch;
+				baseBranch = options.base || branchInfo.baseBranch;
 			}
-		}
 
-		// Prompt for LLM if not explicitly provided via CLI
-		let llmProvider = options.llm;
-		if (!process.argv.includes('--llm') && !process.argv.includes('-l')) {
-			llmProvider = await promptForLlm();
-		}
+			// Prompt for LLM if not provided
+			let llmProvider = options.llm;
+			if (!process.argv.includes('--llm') && !process.argv.includes('-l')) {
+				llmProvider = await promptForLlm();
+			}
 
-		// Prompt for output format if not explicitly provided via CLI
-		let outputFormat = options.output;
-		if (!process.argv.includes('--output') && !process.argv.includes('-o')) {
-			outputFormat = await promptForOutputFormat();
-		}
+			// Prompt for output format if not provided
+			let outputFormat = options.output;
+			if (!process.argv.includes('--output') && !process.argv.includes('-o')) {
+				outputFormat = await promptForOutputFormat(true);
+			} else if (options.output) {
+				try {
+					validateLocalOutputFormat(options.output);
+					outputFormat = options.output;
+				} catch (error) {
+					console.error('Error:', error.message);
+					process.exit(1);
+				}
+			} else {
+				outputFormat = 'html';
+			}
 
-		await performReview(url, llmProvider, outputFormat);
+			await performLocalReview(currentBranch, baseBranch, llmProvider, outputFormat);
+		} else {
+			// GitLab MR review
+			let url = urlOrBranch;
+			if (!url || !url.startsWith('http')) {
+				url = await promptForUrl();
+				if (!url) {
+					console.error('Error: GitLab MR URL is required');
+					process.exit(1);
+				}
+			}
+
+			// Prompt for LLM if not provided
+			let llmProvider = options.llm;
+			if (!process.argv.includes('--llm') && !process.argv.includes('-l')) {
+				llmProvider = await promptForLlm();
+			}
+
+			// Prompt for output format if not provided
+			let outputFormat = options.output;
+			if (!process.argv.includes('--output') && !process.argv.includes('-o')) {
+				outputFormat = await promptForOutputFormat(false);
+			} else if (options.output) {
+				try {
+					validateOutputFormat(options.output);
+					outputFormat = options.output;
+				} catch (error) {
+					console.error('Error:', error.message);
+					process.exit(1);
+				}
+			} else {
+				outputFormat = 'gitlab';
+			}
+
+			await performReview(url, llmProvider, outputFormat);
+		}
 	});
 
 // Add a separate command for listing LLMs
@@ -313,14 +474,23 @@ program
 
 // Interactive mode when no arguments provided
 if (process.argv.length === 2) {
-	const url = await promptForUrl();
-	if (!url) {
-		console.error('Error: URL is required');
-		process.exit(1);
+	const reviewMode = await promptForReviewMode();
+
+	if (reviewMode === 'local') {
+		const branchInfo = await promptForBranches(),
+			llmProvider = await promptForLlm(),
+			outputFormat = await promptForOutputFormat(true);
+		await performLocalReview(branchInfo.currentBranch, branchInfo.baseBranch, llmProvider, outputFormat);
+	} else {
+		const url = await promptForUrl();
+		if (!url) {
+			console.error('Error: GitLab MR URL is required');
+			process.exit(1);
+		}
+		const llmProvider = await promptForLlm(),
+			outputFormat = await promptForOutputFormat(false);
+		await performReview(url, llmProvider, outputFormat);
 	}
-	const llmProvider = await promptForLlm(),
-		outputFormat = await promptForOutputFormat();
-	await performReview(url, llmProvider, outputFormat);
 } else {
 	program.parse();
 }
