@@ -59,9 +59,6 @@ Automated GitLab Merge Request code reviews using various AI/LLM providers.
 
 ### Command Structure
 
-The tool supports multiple usage patterns for maximum flexibility:
-
-#### Modern Command Syntax
 ```bash
 # Interactive mode (prompts for URL)
 npm start review
@@ -72,17 +69,11 @@ npm start review <merge-request-url>
 # Specify LLM provider
 npm start review <merge-request-url> --llm claude
 
+# Choose output format
+npm start review <merge-request-url> --output html
+
 # List available LLMs
 npm start list-llms
-```
-
-#### Legacy Syntax (backward compatible)
-```bash
-# Interactive mode
-npm start
-
-# Direct usage
-npm start <merge-request-url> [llm-provider]
 ```
 
 ### Examples
@@ -103,7 +94,17 @@ npm start <merge-request-url> [llm-provider]
    npm start review https://gitlab.example.com/project/repo/-/merge_requests/123 --llm claude
    ```
 
-4. **Check available LLMs**:
+4. **Generate HTML report**:
+   ```bash
+   npm start review https://gitlab.example.com/project/repo/-/merge_requests/123 --output html
+   ```
+
+5. **CLI linter-style output**:
+   ```bash
+   npm start review https://gitlab.example.com/project/repo/-/merge_requests/123 --output cli
+   ```
+
+6. **Check available LLMs**:
    ```bash
    npm start list-llms
    # Output:
@@ -118,6 +119,7 @@ npm start <merge-request-url> [llm-provider]
 |--------|-------------|
 | `<url>` | GitLab Merge Request URL (optional, will prompt if missing) |
 | `-l, --llm <provider>` | Specify LLM provider (auto-detected if not specified) |
+| `-o, --output <format>` | Output format: gitlab, html, cli (default: gitlab) |
 | `--list-llms` | List available LLM providers and exit |
 | `-h, --help` | Display help information |
 | `-V, --version` | Display version number |
@@ -151,14 +153,30 @@ The tool automatically detects which LLM CLI tools are installed:
 3. **Diff Analysis**: Retrieves the MR diff and changed files
 4. **Context Building**: Reads full file contents for better analysis
 5. **AI Review**: Sends code and context to the selected LLM for analysis
-6. **Comment Posting**: Posts line-specific comments and summary to GitLab
+6. **Output Generation**: Delivers results based on selected format:
+   - **GitLab**: Posts line-specific comments and summary to GitLab
+   - **HTML**: Generates beautiful standalone report file
+   - **CLI**: Shows linter-style console output
 
-## Output Format
+## Output Formats
 
-The tool generates:
+The tool supports three output formats:
+
+### GitLab (Default)
 - **Line-specific comments**: Posted directly on the relevant lines
 - **Summary comment**: Overall review summary posted to the MR
 - **Console output**: Real-time progress and results
+
+### HTML Report
+- **Professional styling**: Playwright-inspired design with modern UI
+- **Color-coded labels**: Visual distinction for different comment types
+- **Summary statistics**: Overview of comments, blocking issues, and praise
+- **Standalone file**: Self-contained report that can be shared or archived
+
+### CLI Output
+- **Linter-style format**: Similar to ESLint output with `file:line label: message`
+- **Summary statistics**: Quick overview of issues found
+- **Console-friendly**: Perfect for CI/CD pipelines and terminal workflows
 
 ## Troubleshooting
 

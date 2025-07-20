@@ -439,14 +439,8 @@ program
 		}
 	});
 
-// Support legacy usage without subcommand
-if (process.argv.length >= 3 && !process.argv[2].startsWith('-') && !['review', 'help', '--help', '-h', '--version', '-V', 'list-llms'].includes(process.argv[2])) {
-	// Legacy mode: gitlab-mr-reviewer <url> [llm]
-	const url = process.argv[2],
-		llm = process.argv[3];
-	await performReview(url, llm, 'gitlab');
-} else if (process.argv.length === 2) {
-	// Interactive mode when no arguments provided
+// Interactive mode when no arguments provided
+if (process.argv.length === 2) {
 	const url = await promptForUrl();
 	if (!url) {
 		console.error('Error: URL is required');
