@@ -4,11 +4,22 @@ import { promisify } from 'node:util';
 const execPromise = promisify(exec);
 
 export async function cloneRepository(cloneUrl, branchName, repositoryDirectory) {
-	const command = `git clone --depth 1 --branch ${branchName} ${cloneUrl} ${repositoryDirectory}`;
+	if (!cloneUrl || !branchName || !repositoryDirectory) {
+		throw new Error('Missing required parameters for git clone');
+	}
+
+	const command = 'git',
+		arguments_ = ['clone', '--depth', '1', '--branch', branchName, cloneUrl, repositoryDirectory];
+
 	console.log(`Cloning repository into ${repositoryDirectory}...`);
-	const { stdout, stderr } = await execPromise(command);
-	console.log('Git clone stdout:', stdout);
-	if (stderr) {
-		console.error('Git clone stderr:', stderr);
+
+	try {
+		const { stdout, stderr } = await execPromise(`${command} ${arguments_.map(argument => `"${argument}"`).join(' ')}`);
+		console.log('Git clone stdout:', stdout);
+		if (stderr) {
+			console.error('Git clone stderr:', stderr);
+		}
+	} catch (error) {
+		throw new Error(`Failed to clone repository: ${error.message}`);
 	}
 }
