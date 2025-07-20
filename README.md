@@ -60,69 +60,128 @@ Automated GitLab Merge Request code reviews using various AI/LLM providers.
 ### Command Structure
 
 ```bash
-# Interactive mode (prompts for URL)
+# Fully interactive mode (prompts for URL and output format)
+npm start
+
+# Interactive mode with command (prompts for URL and output format)
 npm start review
 
-# Direct URL
+# Direct URL (prompts for output format)
 npm start review <merge-request-url>
 
-# Specify LLM provider
-npm start review <merge-request-url> --llm claude
-
-# Choose output format
-npm start review <merge-request-url> --output html
+# Specify all options
+npm start review <merge-request-url> --llm claude --output html
 
 # List available LLMs
 npm start list-llms
 ```
 
-### Examples
+### All Available Options
 
-1. **Basic review with auto-detected LLM**:
-   ```bash
-   npm start review https://gitlab.example.com/project/repo/-/merge_requests/123
-   ```
+```bash
+npm start review [url] [options]
 
-2. **Interactive mode**:
-   ```bash
-   npm start review
-   # Prompts: Please enter the GitLab Merge Request URL:
-   ```
+Arguments:
+  url                    GitLab Merge Request URL (optional, will prompt if missing)
 
-3. **Specify LLM provider**:
-   ```bash
-   npm start review https://gitlab.example.com/project/repo/-/merge_requests/123 --llm claude
-   ```
+Options:
+  -l, --llm <provider>   LLM provider: claude, gemini, openai, ollama, chatgpt, llama, copilot
+  -o, --output <format>  Output format: gitlab, html, cli (will prompt if not specified)
+  --list-llms            List available LLM providers and exit
+  -h, --help             Display help information
+  -V, --version          Display version number
+```
 
-4. **Generate HTML report**:
-   ```bash
-   npm start review https://gitlab.example.com/project/repo/-/merge_requests/123 --output html
-   ```
+### Usage Examples
 
-5. **CLI linter-style output**:
-   ```bash
-   npm start review https://gitlab.example.com/project/repo/-/merge_requests/123 --output cli
-   ```
+#### 1. Fully Interactive Mode
+```bash
+npm start
+# Prompts for:
+# - GitLab Merge Request URL
+# - Output format (gitlab/html/cli)
+# - Uses auto-detected LLM
+```
 
-6. **Check available LLMs**:
-   ```bash
-   npm start list-llms
-   # Output:
-   # Available LLM providers:
-   #   - gemini
-   #   - claude
-   ```
+#### 2. Interactive with Command
+```bash
+npm start review
+# Prompts for:
+# - GitLab Merge Request URL (if not provided)
+# - Output format
+```
 
-### Command Options
+#### 3. Specify URL, Auto-detect Everything Else
+```bash
+npm start review https://gitlab.example.com/project/repo/-/merge_requests/123
+# Prompts for output format
+# Auto-detects available LLM
+```
 
-| Option | Description |
-|--------|-------------|
-| `<url>` | GitLab Merge Request URL (optional, will prompt if missing) |
-| `-l, --llm <provider>` | Specify LLM provider (auto-detected if not specified) |
-| `-o, --output <format>` | Output format: gitlab, html, cli (default: gitlab) |
-| `--list-llms` | List available LLM providers and exit |
-| `-h, --help` | Display help information |
-| `-V, --version` | Display version number |
+#### 4. Complete Command with All Options
+```bash
+npm start review https://gitlab.example.com/project/repo/-/merge_requests/123 --llm claude --output html
+# No prompts - runs directly with specified options
+```
+
+#### 5. Generate Different Output Formats
+```bash
+# Post comments to GitLab (default)
+npm start review <url> --output gitlab
+
+# Generate HTML report file
+npm start review <url> --output html
+
+# Show CLI linter-style output
+npm start review <url> --output cli
+```
+
+#### 6. Specify LLM Provider
+```bash
+# Use Claude
+npm start review <url> --llm claude
+
+# Use Gemini
+npm start review <url> --llm gemini
+
+# Use OpenAI
+npm start review <url> --llm openai
+
+# Use local Ollama
+npm start review <url> --llm ollama
+```
+
+#### 7. Check Available Providers
+```bash
+npm start list-llms
+# Output:
+# Available LLM providers:
+#   - gemini
+#   - claude
+#   - openai (if installed)
+```
+
+### Command Options Reference
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `[url]` | Argument | *prompted* | GitLab Merge Request URL |
+| `-l, --llm <provider>` | Option | *auto-detected* | LLM provider: `claude`, `gemini`, `openai`, `ollama`, `chatgpt`, `llama`, `copilot` |
+| `-o, --output <format>` | Option | *prompted* | Output format: `gitlab`, `html`, `cli` |
+| `--list-llms` | Flag | - | List available LLM providers and exit |
+| `-h, --help` | Flag | - | Display help information |
+| `-V, --version` | Flag | - | Display version number |
+
+### Interactive Prompts
+
+The tool will interactively prompt for missing required information:
+
+1. **URL Prompt**: If no URL provided as argument
+2. **Output Format Prompt**: If no `--output` specified, shows options:
+   - `gitlab` - Post comments directly to GitLab MR (requires GitLab token)
+   - `html` - Generate beautiful HTML report file
+   - `cli` - Show linter-style console output
+3. **LLM Auto-detection**: Automatically detects and uses the first available LLM provider
 
 ## Configuration
 
@@ -146,17 +205,47 @@ The tool automatically detects which LLM CLI tools are installed:
 | Llama | `llama` | Various implementations available |
 | Copilot | `gh` | [GitHub CLI Setup](https://cli.github.com/) |
 
-## How It Works
+## Complete Workflow
 
-1. **Validation**: Checks for unresolved discussions on the MR
-2. **Repository Setup**: Clones the source branch to a temporary directory
-3. **Diff Analysis**: Retrieves the MR diff and changed files
-4. **Context Building**: Reads full file contents for better analysis
-5. **AI Review**: Sends code and context to the selected LLM for analysis
-6. **Output Generation**: Delivers results based on selected format:
-   - **GitLab**: Posts line-specific comments and summary to GitLab
-   - **HTML**: Generates beautiful standalone report file
-   - **CLI**: Shows linter-style console output
+### 1. Input Collection
+- **URL**: Provided as argument or prompted interactively
+- **LLM Provider**: Auto-detected from available CLI tools, or specified with `--llm`
+- **Output Format**: Prompted interactively or specified with `--output`
+
+### 2. Validation & Setup
+- Validates GitLab private token is set
+- Checks for unresolved discussions on the MR
+- Detects available LLM CLI tools on the system
+
+### 3. Repository Analysis
+- Clones the source branch to a temporary directory
+- Retrieves the MR diff and changed files list
+- Reads full file contents for better context
+
+### 4. AI-Powered Review
+- Sends code diff and context to selected LLM
+- Uses Conventional Comments format for structured feedback
+- Focuses on critical issues: bugs, security, performance
+
+### 5. Output Generation
+Based on selected format:
+
+**GitLab Output:**
+- Posts line-specific comments to MR
+- Adds summary comment with overall assessment
+- Shows real-time progress in console
+
+**HTML Output:**
+- Generates standalone HTML report file
+- Professional Playwright-inspired styling
+- Color-coded labels and summary statistics
+- Self-contained file for sharing/archiving
+
+**CLI Output:**
+- Shows linter-style console output
+- Format: `file:line label: message`
+- Summary statistics at the end
+- Perfect for CI/CD integration
 
 ## Output Formats
 

@@ -32,6 +32,25 @@ async function promptForUrl() {
 	});
 }
 
+async function promptForOutputFormat() {
+	const rl = readline.createInterface({
+		input: process.stdin,
+		output: process.stdout,
+	});
+
+	return new Promise((resolve) => {
+		console.log('\nOutput format options:');
+		console.log('  gitlab - Post comments directly to GitLab MR (default)');
+		console.log('  html   - Generate beautiful HTML report file');
+		console.log('  cli    - Show linter-style console output');
+		rl.question('\nChoose output format [gitlab/html/cli] (default: gitlab): ', (answer) => {
+			rl.close();
+			const format = answer.trim().toLowerCase() || 'gitlab';
+			resolve(['gitlab', 'html', 'cli'].includes(format) ? format : 'gitlab');
+		});
+	});
+}
+
 async function checkBinaryExists(binaryName) {
 	try {
 		await execPromise(`command -v ${binaryName}`);
@@ -387,10 +406,10 @@ program
 
 program
 	.command('review')
-	.description('Review a GitLab Merge Request')
-	.argument('[url]', 'GitLab Merge Request URL')
-	.option('-l, --llm <provider>', 'LLM provider to use (auto-detected if not specified)')
-	.option('-o, --output <format>', 'Output format: gitlab, html, cli', 'gitlab')
+	.description('Review a GitLab Merge Request with AI-powered analysis')
+	.argument('[url]', 'GitLab Merge Request URL (will prompt if not provided)')
+	.option('-l, --llm <provider>', 'LLM provider to use (claude, gemini, openai, ollama, chatgpt, llama, copilot)')
+	.option('-o, --output <format>', 'Output format: gitlab (post to MR), html (generate report), cli (console output)', 'gitlab')
 	.option('--list-llms', 'List available LLM providers and exit')
 	.action(async(url, options) => {
 		if (options.listLlms) {
@@ -420,7 +439,13 @@ program
 			}
 		}
 
-		await performReview(url, options.llm, options.output);
+		// Prompt for output format if not explicitly provided via CLI
+		let outputFormat = options.output;
+		if (!process.argv.includes('--output') && !process.argv.includes('-o')) {
+			outputFormat = await promptForOutputFormat();
+		}
+
+		await performReview(url, options.llm, outputFormat);
 	});
 
 // Add a separate command for listing LLMs
@@ -446,7 +471,8 @@ if (process.argv.length === 2) {
 		console.error('Error: URL is required');
 		process.exit(1);
 	}
-	await performReview(url, undefined, 'gitlab');
+	const outputFormat = await promptForOutputFormat();
+	await performReview(url, undefined, outputFormat);
 } else {
 	program.parse();
 }
