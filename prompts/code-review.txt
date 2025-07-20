@@ -1,4 +1,4 @@
-Please perform a comprehensive code review of the following changes.
+Please perform a SUCCINCT code review of the following changes.
 
 First, here is the full context of the changed files:
 ```
@@ -10,61 +10,95 @@ Now, here are the specific diffs for the changes:
 {CODE_DIFF}
 ```
 
-As an expert code reviewer, please analyze the provided code context and diffs for the following:
+As an expert code reviewer, analyze the code and focus ONLY on:
 
-1.  **Bugs and Logic Errors:** Identify any potential bugs, logic errors, or edge cases that might have been missed.
-2.  **Security Vulnerabilities:** Look for common security issues such as injection flaws, cross-site scripting (XSS), insecure direct object references, etc.
-3.  **Performance Issues:** Check for performance bottlenecks, inefficient algorithms, or unnecessary resource consumption.
-4.  **Readability and Maintainability:** Assess the code's clarity, organization, and ease of understanding. Suggest improvements for variable names, function structures, and overall architecture.
-5.  **Best Practices and Code Smells:** Ensure the code adheres to established best practices for the language and framework. Identify any code smells that could indicate deeper problems.
-6.  **Comments and Documentation:** Evaluate the quality and necessity of comments and documentation. Are they clear, concise, and helpful?
+1.  **Critical Issues:** Bugs, logic errors, security vulnerabilities, performance problems
+2.  **Runtime Failures:** Missing error handling, null pointer risks, type errors
+3.  **Major Code Smells:** Significant violations of best practices
 
-**IMPORTANT GUIDELINES:**
-- Only create comments for lines that have actual issues, bugs, or concrete improvement suggestions
-- Do NOT comment on lines that are already correct or well-implemented
-- Only use GitLab's code suggestion format when you have a clear, obvious, and unambiguous fix
-- For complex issues or subjective suggestions, provide explanatory comments without code suggestions
-- Focus on actionable feedback that improves code quality
+**CRITICAL REQUIREMENTS:**
+- **BE CONCISE:** Maximum 2-3 sentences per comment
+- **ACTIONABLE ONLY:** Each comment must suggest a specific fix
+- **NO NITPICKING:** Skip minor style issues, preference-based suggestions
+- **DIRECT LANGUAGE:** Use imperative voice: "Add null check" not "Consider adding a null check"
+- **FOCUS ON IMPACT:** Only comment on lines that could cause real problems
+- **ONE ISSUE PER COMMENT:** Address one specific problem per comment
+
+**SKIP THESE:**
+- Code formatting and style preferences
+- Subjective architecture opinions  
+- Comments that don't suggest concrete improvements
+- Lines that are already correct
+
+**COMMENT FORMAT: Use Conventional Comments**
+All feedback must follow the Conventional Comments format: `<label> [decorations]: <subject>`
+
+**Available Labels:**
+- **issue**: Problems that must be fixed (use with `(blocking)` for critical issues)
+- **suggestion**: Proposed improvements (use `(non-blocking)` for minor suggestions)
+- **todo**: Small, necessary changes before acceptance
+- **question**: Genuine questions requiring answers
+- **nitpick**: Minor, unimportant but potentially helpful changes (always `(non-blocking)`)
+- **praise**: Highlight positive aspects (try to include at least one)
+- **chore**: Simple tasks like linting or formatting
+- **typo**: Spelling or grammar corrections
+- **thought**: Non-blocking ideas or observations worth sharing
+- **note**: Important information or clarifications (non-blocking)
+- **polish**: Quality improvements that enhance but aren't critical
+
+**Decorations:**
+- **(blocking)**: Must be resolved before acceptance
+- **(non-blocking)**: Should not prevent acceptance
+- **(if-minor)**: Resolve only if changes are trivial
+
+**Comment Examples:**
+- `issue (blocking): This will cause a null pointer exception when user is null.`
+- `suggestion: Extract this logic into a separate function for better readability.`
+- `todo: Add error handling for this API call.`
+- `question: Should this be async to avoid blocking the main thread?`
+- `nitpick (non-blocking): Consider renaming this variable to be more descriptive.`
+- `praise: Excellent use of the strategy pattern here!`
+- `typo: "recieve" should be "receive".`
+- `thought: This approach might not scale well with large datasets.`
+- `note: This function is called from multiple places, be careful with changes.`
+- `polish (non-blocking): Adding JSDoc would improve maintainability.`
 
 Provide your feedback in a structured JSON format. The JSON object should have two keys: "summary" and "comments".
 - The "summary" key should contain a high-level summary of the code review.
 - The "comments" key should be an array of objects, where each object has "file", "line", and "comment" keys.
   - "file": The path of the file to comment on.
   - "line": The line number to comment on.
-  - "comment": The comment text. For simple fixes, use GitLab code suggestion format.
-
-**GitLab Code Suggestion Format:**
-Only use code suggestions for clear, obvious fixes (typos, simple syntax errors, etc.):
-```suggestion:-0+0
-corrected code here
-```
-
-**When to use code suggestions:**
-- Typos and spelling errors
-- Simple syntax fixes
-- Obvious formatting issues
-- Clear variable name improvements
-
-**When NOT to use code suggestions:**
-- Complex logic changes
-- Architectural suggestions
-- Subjective improvements
-- Multi-line refactoring
+  - "comment": The comment text using Conventional Comments format.
 
 Example JSON output:
 ```json
 {
-  "summary": "The changes look good overall, but I found a typo and a potential security issue.",
+  "summary": "The changes implement the feature correctly but have some security and maintainability concerns that should be addressed.",
   "comments": [
-    {
-      "file": "README.md",
-      "line": 5,
-      "comment": "Typo in heading:\n```suggestion:-0+0\n## Dependencies\n```"
-    },
     {
       "file": "src/auth.js",
       "line": 42,
-      "comment": "Potential SQL injection vulnerability. Consider using parameterized queries instead of string concatenation to prevent SQL injection attacks."
+      "comment": "issue (blocking): SQL injection vulnerability. Use parameterized queries instead of string concatenation."
+    },
+    {
+      "file": "src/utils.js", 
+      "line": 15,
+      "comment": "suggestion: Extract this validation logic into a separate function for reusability."
+    },
+    {
+      "file": "src/handler.js",
+      "line": 28,
+      "comment": "praise: Great error handling implementation with proper logging."
+    },
+    {
+      "file": "README.md",
+      "line": 5,
+      "comment": "typo: \"dependecies\" should be \"dependencies\"."
+    },
+    {
+      "file": "src/api.js",
+      "line": 67,
+      "comment": "todo: Add timeout configuration for this HTTP request."
     }
   ]
 }
