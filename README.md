@@ -1,5 +1,11 @@
 # GitLab MR Reviewer
 
+---
+
+**Note:** This code was 100% generated with AI (mainly Claude Code) as an experiment.
+
+---
+
 Automated GitLab Merge Request code reviews using various AI/LLM providers.
 
 ## Features
@@ -89,7 +95,7 @@ npm start <merge-request-url> [llm-provider]
 2. **Interactive mode**:
    ```bash
    npm start review
-   # Prompts: Please enter the GitLab Merge Request URL: 
+   # Prompts: Please enter the GitLab Merge Request URL:
    ```
 
 3. **Specify LLM provider**:
