@@ -39,7 +39,7 @@ All feedback must follow the Conventional Comments format: `<label> [decorations
 - **todo**: Small, necessary changes before acceptance
 - **question**: Genuine questions requiring answers
 - **nitpick**: Minor, unimportant but potentially helpful changes (always `(non-blocking)`)
-- **praise**: Highlight positive aspects (try to include at least one)
+- **praise**: Highlight positive aspects
 - **chore**: Simple tasks like linting or formatting
 - **typo**: Spelling or grammar corrections
 - **thought**: Non-blocking ideas or observations worth sharing
