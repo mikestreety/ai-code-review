@@ -1,4 +1,3 @@
-
 {
   "name": "gitlab-mr-reviewer",
   "version": "1.0.0",
@@ -6,9 +5,13 @@
   "main": "src/index.js",
   "type": "module",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "lint": "npm run eslint:fix",
+    "eslint:dry-run": "eslint ./ --color --cache --config eslint.config.js --cache-location .cache/ --cache-strategy content",
+    "eslint:fix": "npm run eslint:dry-run -- --fix"
   },
   "dependencies": {
+    "@lintkit/eslint-config": "^2.1.0",
     "dotenv": "^16.3.1",
     "node-fetch": "^3.3.2"
   }

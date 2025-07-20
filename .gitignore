@@ -1,3 +1,8 @@
+# Linting
+.cache
+
+.claude
+
 # Dependencies
 node_modules/
 npm-debug.log*
