@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { Command } from 'commander';
 import { exec } from 'node:child_process';
 import { promisify } from 'node:util';
+import readline from 'node:readline';
 import { getProjectCloneUrl, getMergeRequestDetails, getMergeRequestDiff, getChangedFiles, getUnresolvedDiscussions, postCommentToMergeRequest, postLineCommentToMergeRequest } from './api/gitlab.js';
 import { cloneRepository } from './services/git.js';
 import { runCodeReview } from './services/llm.js';
@@ -16,6 +17,20 @@ const __filename = fileURLToPath(import.meta.url),
 	packageJson = JSON.parse(readFileSync(path.join(__dirname, 'package.json'), 'utf8')),
 
 	execPromise = promisify(exec);
+
+async function promptForUrl() {
+	const rl = readline.createInterface({
+		input: process.stdin,
+		output: process.stdout,
+	});
+
+	return new Promise((resolve) => {
+		rl.question('Please enter the GitLab Merge Request URL: ', (answer) => {
+			rl.close();
+			resolve(answer.trim());
+		});
+	});
+}
 
 async function checkBinaryExists(binaryName) {
 	try {
@@ -264,8 +279,11 @@ program
 		}
 
 		if (!url) {
-			console.error('Error: missing required argument "url"');
-			process.exit(1);
+			url = await promptForUrl();
+			if (!url) {
+				console.error('Error: URL is required');
+				process.exit(1);
+			}
 		}
 
 		await performReview(url, options.llm);
@@ -293,6 +311,14 @@ if (process.argv.length >= 3 && !process.argv[2].startsWith('-') && !['review', 
 	const url = process.argv[2],
 		llm = process.argv[3];
 	await performReview(url, llm);
+} else if (process.argv.length === 2) {
+	// Interactive mode when no arguments provided
+	const url = await promptForUrl();
+	if (!url) {
+		console.error('Error: URL is required');
+		process.exit(1);
+	}
+	await performReview(url);
 } else {
 	program.parse();
 }
