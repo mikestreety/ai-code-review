@@ -230,7 +230,7 @@ async function performLocalReview(currentBranch, baseBranch, llmChoice, outputFo
 		const parsedReview = parseReviewResponse(review, llmChoice);
 
 		// Handle output (no GitLab params for local)
-		await handleOutput(outputFormat, parsedReview, llmChoice, null);
+		await handleOutput(outputFormat, parsedReview, llmChoice, null, fileContext);
 	} catch (error) {
 		console.error('\nAn error occurred:', error.message);
 		process.exit(1);
@@ -279,7 +279,7 @@ async function performReview(mrUrl, llmChoice, outputFormat = 'gitlab') {
 				headSha: mrData.headSha,
 			};
 
-		await handleOutput(outputFormat, parsedReview, llmChoice, gitlabParameters);
+		await handleOutput(outputFormat, parsedReview, llmChoice, gitlabParameters, analysisData.fileContext);
 	} catch (error) {
 		console.error('\nAn error occurred:', error.message);
 		process.exit(1);

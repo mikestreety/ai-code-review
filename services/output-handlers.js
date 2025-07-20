@@ -1,9 +1,20 @@
 import { writeFileSync } from 'node:fs';
 import { postCommentToMergeRequest, postLineCommentToMergeRequest } from '../api/gitlab.js';
 import { getReviewStatistics } from './review-processor.js';
+import { extractCodeSnippet, parseFileContents, getFileExtension, getLanguageFromExtension } from './code-snippet-extractor.js';
 
-export function generateHtmlReport(parsedReview, llmChoice) {
+function escapeHtml(text) {
+	return text
+		.replaceAll('&', '&amp;')
+		.replaceAll('<', '&lt;')
+		.replaceAll('>', '&gt;')
+		.replaceAll('"', '&quot;')
+		.replaceAll('\'', '&#39;');
+}
+
+export function generateHtmlReport(parsedReview, llmChoice, fileContext = null) {
 	const stats = getReviewStatistics(parsedReview),
+		fileContents = fileContext ? parseFileContents(fileContext) : new Map(),
 
 		html = `<!DOCTYPE html>
 <html lang="en">
@@ -44,6 +55,12 @@ export function generateHtmlReport(parsedReview, llmChoice) {
         .stat { background: #f8fafc; padding: 8px 16px; border-radius: 6px; text-align: center; }
         .stat-number { font-size: 18px; font-weight: 600; color: #0f172a; }
         .stat-label { font-size: 12px; color: #64748b; margin-top: 2px; }
+        .code-snippet { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; margin-top: 12px; font-family: 'SF Mono', Consolas, monospace; font-size: 13px; overflow-x: auto; }
+        .code-snippet-header { background: #f1f5f9; padding: 8px 12px; border-bottom: 1px solid #e2e8f0; font-size: 12px; color: #64748b; }
+        .code-line { padding: 2px 12px; display: flex; border-left: 3px solid transparent; }
+        .code-line.target { background: #fef3c7; border-left-color: #f59e0b; }
+        .line-num { color: #9ca3af; min-width: 40px; margin-right: 12px; text-align: right; user-select: none; }
+        .line-content { flex: 1; white-space: pre; color: #374151; }
     </style>
 </head>
 <body>
@@ -77,7 +94,33 @@ export function generateHtmlReport(parsedReview, llmChoice) {
             ${parsedReview.comments.map((comment) => {
 				const labelMatch = comment.comment.match(/^(\w+)(\s*\([^)]+\))?:/),
 					label = labelMatch ? labelMatch[1] : 'note',
-					commentText = comment.comment.replace(/^(\w+)(\s*\([^)]+\))?:\s*/, '');
+					commentText = comment.comment.replace(/^(\w+)(\s*\([^)]+\))?:\s*/, ''),
+
+					// Get code snippet if file content is available
+					fileContent = fileContents.get(comment.file);
+				let codeSnippetHtml = '';
+
+				if (fileContent && comment.line) {
+					const snippet = extractCodeSnippet(fileContent, comment.line, 2);
+					if (snippet) {
+						const extension = getFileExtension(comment.file),
+							language = getLanguageFromExtension(extension);
+
+						codeSnippetHtml = `
+                        <div class="code-snippet">
+                            <div class="code-snippet-header">
+                                ${comment.file} (${language})
+                            </div>
+                            ${snippet.lines.map(line => `
+                                <div class="code-line ${line.isTarget ? 'target' : ''}">
+                                    <span class="line-num">${line.lineNumber}</span>
+                                    <span class="line-content">${escapeHtml(line.content)}</span>
+                                </div>
+                            `).join('')}
+                        </div>`;
+					}
+				}
+
 				return `
                 <div class="comment ${label}">
                     <div class="comment-header">
@@ -86,6 +129,7 @@ export function generateHtmlReport(parsedReview, llmChoice) {
                         <span class="line-number">Line ${comment.line}</span>
                     </div>
                     <div class="comment-text">${commentText}</div>
+                    ${codeSnippetHtml}
                 </div>`;
 			}).join('')}
         </div>
@@ -162,10 +206,10 @@ export async function outputToGitLab(parsedReview, llmChoice, gitlabUrl, project
 	console.log('✓ Summary comment posted successfully.');
 }
 
-export async function handleOutput(outputFormat, parsedReview, llmChoice, gitlabParameters = null) {
+export async function handleOutput(outputFormat, parsedReview, llmChoice, gitlabParameters = null, fileContext = null) {
 	switch (outputFormat) {
 		case 'html': {
-			const html = generateHtmlReport(parsedReview, llmChoice),
+			const html = generateHtmlReport(parsedReview, llmChoice, fileContext),
 				fileName = `code-review-${Date.now()}.html`;
 			writeFileSync(fileName, html);
 			console.log(`\n✓ HTML report generated: ${fileName}`);
