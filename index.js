@@ -89,7 +89,7 @@ async function main() {
 				console.log(`Using ${llmChoice} (only available LLM)`);
 			} else {
 				const availableOptions = availableLlms.join('/'),
-					defaultLlm = availableLlms.includes('gemini') ? 'gemini' : availableLlms[0];
+					defaultLlm = availableLlms[0];
 
 				llmChoice = await new Promise((resolve) => {
 					rl.question(`Choose LLM (${availableOptions}) [default: ${defaultLlm}]: `, resolve);
@@ -166,6 +166,14 @@ async function main() {
 		try {
 			// Clean up the response - extract JSON from the response
 			let cleanedReview = review.trim();
+
+			// First, try to parse as Claude CLI's wrapped response format
+			if (llmChoice.toLowerCase() === 'claude' && cleanedReview.startsWith('{') && cleanedReview.includes('"result"')) {
+				const wrappedResponse = JSON.parse(cleanedReview);
+				if (wrappedResponse.result) {
+					cleanedReview = wrappedResponse.result;
+				}
+			}
 
 			// Look for JSON block markers
 			const jsonStart = cleanedReview.indexOf('```json'),
