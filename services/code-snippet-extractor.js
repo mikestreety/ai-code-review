@@ -3,7 +3,7 @@
  */
 
 export function extractCodeSnippet(fileContent, lineNumber, contextLines = 3) {
-	if (!fileContent || !lineNumber || lineNumber < 1) {
+	if (!fileContent || !lineNumber || lineNumber < 1 || !Number.isInteger(lineNumber) || contextLines < 0) {
 		return null;
 	}
 

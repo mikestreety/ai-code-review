@@ -100,7 +100,7 @@ export function generateHtmlReport(parsedReview, llmChoice, fileContext = null) 
 					fileContent = fileContents.get(comment.file);
 				let codeSnippetHtml = '';
 
-				if (fileContent && comment.line) {
+				if (fileContent && comment.line && comment.line > 0) {
 					const snippet = extractCodeSnippet(fileContent, comment.line, 2);
 					if (snippet) {
 						const extension = getFileExtension(comment.file),
