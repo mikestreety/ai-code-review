@@ -158,6 +158,29 @@ async function getAvailableLlms() {
 	return availableLlms;
 }
 
+async function determineBranchesForLocalReview(urlOrBranch, options) {
+	let currentBranch, baseBranch;
+
+	if (urlOrBranch && !urlOrBranch.startsWith('http')) {
+		// Treat as branch name
+		currentBranch = urlOrBranch;
+		baseBranch = options.base ? options.base : (await getBaseBranch(currentBranch));
+	} else if (urlOrBranch) {
+		throw new Error('URL provided but local mode selected. Use --mode gitlab for GitLab URLs.');
+	} else if (options.base) {
+		// Use current branch with provided base
+		currentBranch = await getCurrentBranch();
+		baseBranch = options.base;
+	} else {
+		// Prompt for branches
+		const branchInfo = await promptForBranches();
+		currentBranch = branchInfo.currentBranch;
+		baseBranch = branchInfo.baseBranch;
+	}
+
+	return { currentBranch, baseBranch };
+}
+
 async function performLocalReview(currentBranch, baseBranch, llmChoice, outputFormat = 'html') {
 	try {
 		// Validate inputs
@@ -382,18 +405,13 @@ program
 			// Local branch review
 			let currentBranch, baseBranch;
 
-			if (urlOrBranch && !urlOrBranch.startsWith('http')) {
-				// Treat as branch name
-				currentBranch = urlOrBranch;
-				baseBranch = options.base || await getBaseBranch(currentBranch);
-			} else if (urlOrBranch) {
-				console.error('Error: URL provided but local mode selected. Use --mode gitlab for GitLab URLs.');
-				process.exit(1);
-			} else {
-				// Prompt for branches
-				const branchInfo = await promptForBranches();
+			try {
+				const branchInfo = await determineBranchesForLocalReview(urlOrBranch, options);
 				currentBranch = branchInfo.currentBranch;
-				baseBranch = options.base || branchInfo.baseBranch;
+				baseBranch = branchInfo.baseBranch;
+			} catch (error) {
+				console.error('Error:', error.message);
+				process.exit(1);
 			}
 
 			// Prompt for LLM if not provided

@@ -37,7 +37,13 @@ export async function getBaseBranch(currentBranch) {
 			return stdout.trim().replace('origin/', '');
 		} catch {
 			// Fall back to main if nothing else works
-			return 'main';
+			const fallback = 'main';
+			try {
+				await execPromise(`git rev-parse --verify ${fallback}`);
+				return fallback;
+			} catch {
+				throw new Error('Unable to determine a valid base branch. Please specify one with --base option.');
+			}
 		}
 	} catch (error) {
 		throw new Error(`Failed to determine base branch: ${error.message}`);
@@ -56,7 +62,7 @@ export async function getBranchDiff(currentBranch, baseBranch) {
 export async function getChangedFilesLocal(currentBranch, baseBranch) {
 	try {
 		const { stdout } = await execPromise(`git diff --name-only ${baseBranch}...${currentBranch}`);
-		return stdout.trim().split('\n').filter(file => file.length > 0);
+		return stdout.trim().split('\n').filter(file => file.trim().length > 0);
 	} catch (error) {
 		throw new Error(`Failed to get changed files between ${baseBranch} and ${currentBranch}: ${error.message}`);
 	}
