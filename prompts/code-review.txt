@@ -1,0 +1,71 @@
+Please perform a comprehensive code review of the following changes.
+
+First, here is the full context of the changed files:
+```
+{FULL_FILE_CONTEXT}
+```
+
+Now, here are the specific diffs for the changes:
+```diff
+{CODE_DIFF}
+```
+
+As an expert code reviewer, please analyze the provided code context and diffs for the following:
+
+1.  **Bugs and Logic Errors:** Identify any potential bugs, logic errors, or edge cases that might have been missed.
+2.  **Security Vulnerabilities:** Look for common security issues such as injection flaws, cross-site scripting (XSS), insecure direct object references, etc.
+3.  **Performance Issues:** Check for performance bottlenecks, inefficient algorithms, or unnecessary resource consumption.
+4.  **Readability and Maintainability:** Assess the code's clarity, organization, and ease of understanding. Suggest improvements for variable names, function structures, and overall architecture.
+5.  **Best Practices and Code Smells:** Ensure the code adheres to established best practices for the language and framework. Identify any code smells that could indicate deeper problems.
+6.  **Comments and Documentation:** Evaluate the quality and necessity of comments and documentation. Are they clear, concise, and helpful?
+
+**IMPORTANT GUIDELINES:**
+- Only create comments for lines that have actual issues, bugs, or concrete improvement suggestions
+- Do NOT comment on lines that are already correct or well-implemented
+- Only use GitLab's code suggestion format when you have a clear, obvious, and unambiguous fix
+- For complex issues or subjective suggestions, provide explanatory comments without code suggestions
+- Focus on actionable feedback that improves code quality
+
+Provide your feedback in a structured JSON format. The JSON object should have two keys: "summary" and "comments".
+- The "summary" key should contain a high-level summary of the code review.
+- The "comments" key should be an array of objects, where each object has "file", "line", and "comment" keys.
+  - "file": The path of the file to comment on.
+  - "line": The line number to comment on.
+  - "comment": The comment text. For simple fixes, use GitLab code suggestion format.
+
+**GitLab Code Suggestion Format:**
+Only use code suggestions for clear, obvious fixes (typos, simple syntax errors, etc.):
+```suggestion:-0+0
+corrected code here
+```
+
+**When to use code suggestions:**
+- Typos and spelling errors
+- Simple syntax fixes
+- Obvious formatting issues
+- Clear variable name improvements
+
+**When NOT to use code suggestions:**
+- Complex logic changes
+- Architectural suggestions
+- Subjective improvements
+- Multi-line refactoring
+
+Example JSON output:
+```json
+{
+  "summary": "The changes look good overall, but I found a typo and a potential security issue.",
+  "comments": [
+    {
+      "file": "README.md",
+      "line": 5,
+      "comment": "Typo in heading:\n```suggestion:-0+0\n## Dependencies\n```"
+    },
+    {
+      "file": "src/auth.js",
+      "line": 42,
+      "comment": "Potential SQL injection vulnerability. Consider using parameterized queries instead of string concatenation to prevent SQL injection attacks."
+    }
+  ]
+}
+```
