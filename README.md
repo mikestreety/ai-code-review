@@ -60,13 +60,13 @@ Automated GitLab Merge Request code reviews using various AI/LLM providers.
 ### Command Structure
 
 ```bash
-# Fully interactive mode (prompts for URL and output format)
+# Fully interactive mode (prompts for URL, LLM, and output format)
 npm start
 
-# Interactive mode with command (prompts for URL and output format)
+# Interactive mode with command (prompts for URL, LLM, and output format)
 npm start review
 
-# Direct URL (prompts for output format)
+# Direct URL (prompts for LLM and output format)
 npm start review <merge-request-url>
 
 # Specify all options
@@ -85,7 +85,7 @@ Arguments:
   url                    GitLab Merge Request URL (optional, will prompt if missing)
 
 Options:
-  -l, --llm <provider>   LLM provider: claude, gemini, openai, ollama, chatgpt, llama, copilot
+  -l, --llm <provider>   LLM provider: claude, gemini, openai, ollama, chatgpt, llama, copilot (will prompt if not specified)
   -o, --output <format>  Output format: gitlab, html, cli (will prompt if not specified)
   --list-llms            List available LLM providers and exit
   -h, --help             Display help information
@@ -99,8 +99,8 @@ Options:
 npm start
 # Prompts for:
 # - GitLab Merge Request URL
+# - LLM provider (from available options)
 # - Output format (gitlab/html/cli)
-# - Uses auto-detected LLM
 ```
 
 #### 2. Interactive with Command
@@ -108,14 +108,16 @@ npm start
 npm start review
 # Prompts for:
 # - GitLab Merge Request URL (if not provided)
-# - Output format
+# - LLM provider (from available options)
+# - Output format (gitlab/html/cli)
 ```
 
-#### 3. Specify URL, Auto-detect Everything Else
+#### 3. Specify URL, Choose Everything Else
 ```bash
 npm start review https://gitlab.example.com/project/repo/-/merge_requests/123
-# Prompts for output format
-# Auto-detects available LLM
+# Prompts for:
+# - LLM provider (from available options)
+# - Output format (gitlab/html/cli)
 ```
 
 #### 4. Complete Command with All Options
@@ -166,7 +168,7 @@ npm start list-llms
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `[url]` | Argument | *prompted* | GitLab Merge Request URL |
-| `-l, --llm <provider>` | Option | *auto-detected* | LLM provider: `claude`, `gemini`, `openai`, `ollama`, `chatgpt`, `llama`, `copilot` |
+| `-l, --llm <provider>` | Option | *prompted* | LLM provider: `claude`, `gemini`, `openai`, `ollama`, `chatgpt`, `llama`, `copilot` |
 | `-o, --output <format>` | Option | *prompted* | Output format: `gitlab`, `html`, `cli` |
 | `--list-llms` | Flag | - | List available LLM providers and exit |
 | `-h, --help` | Flag | - | Display help information |
@@ -177,11 +179,14 @@ npm start list-llms
 The tool will interactively prompt for missing required information:
 
 1. **URL Prompt**: If no URL provided as argument
-2. **Output Format Prompt**: If no `--output` specified, shows options:
+2. **LLM Provider Prompt**: If no `--llm` specified, shows numbered list of available providers:
+   - Automatically detects which LLM CLI tools are installed
+   - Shows default option (first available)
+   - Allows selection by number
+3. **Output Format Prompt**: If no `--output` specified, shows options:
    - `gitlab` - Post comments directly to GitLab MR (requires GitLab token)
    - `html` - Generate beautiful HTML report file
    - `cli` - Show linter-style console output
-3. **LLM Auto-detection**: Automatically detects and uses the first available LLM provider
 
 ## Configuration
 
@@ -209,7 +214,7 @@ The tool automatically detects which LLM CLI tools are installed:
 
 ### 1. Input Collection
 - **URL**: Provided as argument or prompted interactively
-- **LLM Provider**: Auto-detected from available CLI tools, or specified with `--llm`
+- **LLM Provider**: Prompted from available CLI tools, or specified with `--llm`
 - **Output Format**: Prompted interactively or specified with `--output`
 
 ### 2. Validation & Setup

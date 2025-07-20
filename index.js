@@ -51,6 +51,39 @@ async function promptForOutputFormat() {
 	});
 }
 
+async function promptForLlm() {
+	const availableLlms = await getAvailableLlms();
+
+	if (availableLlms.length === 0) {
+		throw new Error('No LLM binaries found. Please install Claude CLI or Gemini CLI.');
+	}
+
+	if (availableLlms.length === 1) {
+		console.log(`\nUsing ${availableLlms[0]} (only available LLM)`);
+		return availableLlms[0];
+	}
+
+	const rl = readline.createInterface({
+		input: process.stdin,
+		output: process.stdout,
+	});
+
+	return new Promise((resolve) => {
+		console.log('\nAvailable LLM providers:');
+		for (const [index, llm] of availableLlms.entries()) {
+			console.log(`  ${index + 1}. ${llm}`);
+		}
+		console.log(`\nDefault: ${availableLlms[0]}`);
+
+		rl.question(`\nChoose LLM provider [1-${availableLlms.length}] (default: 1): `, (answer) => {
+			rl.close();
+			const choice = Number.parseInt(answer.trim()) || 1,
+				selectedLlm = availableLlms[choice - 1] || availableLlms[0];
+			resolve(selectedLlm);
+		});
+	});
+}
+
 async function checkBinaryExists(binaryName) {
 	try {
 		await execPromise(`command -v ${binaryName}`);
@@ -219,27 +252,14 @@ async function performReview(mrUrl, llmChoice, outputFormat = 'gitlab') {
 	let temporaryDirectory = null;
 
 	try {
-		// Check available LLMs
-		const availableLlms = await getAvailableLlms();
-
-		if (availableLlms.length === 0) {
-			throw new Error('No LLM binaries found. Please install Claude CLI or Gemini CLI.');
-		}
-
-		// Validate LLM choice
-		if (llmChoice && !availableLlms.includes(llmChoice.toLowerCase())) {
-			throw new Error(`Invalid LLM choice "${llmChoice}". Available options: ${availableLlms.join(', ')}`);
-		}
-
-		// Auto-select LLM if not provided
+		// Validate LLM choice (should be provided by caller)
 		if (!llmChoice) {
-			if (availableLlms.length === 1) {
-				llmChoice = availableLlms[0];
-				console.log(`Using ${llmChoice} (only available LLM)`);
-			} else {
-				llmChoice = availableLlms[0]; // Default to first available
-				console.log(`Using ${llmChoice} (default LLM)`);
-			}
+			throw new Error('LLM choice is required');
+		}
+
+		const availableLlms = await getAvailableLlms();
+		if (!availableLlms.includes(llmChoice.toLowerCase())) {
+			throw new Error(`Invalid LLM choice "${llmChoice}". Available options: ${availableLlms.join(', ')}`);
 		}
 
 		const { gitlabUrl, projectId, mergeRequestIid } = parseGitLabUrl(mrUrl);
@@ -408,7 +428,7 @@ program
 	.command('review')
 	.description('Review a GitLab Merge Request with AI-powered analysis')
 	.argument('[url]', 'GitLab Merge Request URL (will prompt if not provided)')
-	.option('-l, --llm <provider>', 'LLM provider to use (claude, gemini, openai, ollama, chatgpt, llama, copilot)')
+	.option('-l, --llm <provider>', 'LLM provider to use (will prompt if not specified)')
 	.option('-o, --output <format>', 'Output format: gitlab (post to MR), html (generate report), cli (console output)', 'gitlab')
 	.option('--list-llms', 'List available LLM providers and exit')
 	.action(async(url, options) => {
@@ -439,13 +459,19 @@ program
 			}
 		}
 
+		// Prompt for LLM if not explicitly provided via CLI
+		let llmProvider = options.llm;
+		if (!process.argv.includes('--llm') && !process.argv.includes('-l')) {
+			llmProvider = await promptForLlm();
+		}
+
 		// Prompt for output format if not explicitly provided via CLI
 		let outputFormat = options.output;
 		if (!process.argv.includes('--output') && !process.argv.includes('-o')) {
 			outputFormat = await promptForOutputFormat();
 		}
 
-		await performReview(url, options.llm, outputFormat);
+		await performReview(url, llmProvider, outputFormat);
 	});
 
 // Add a separate command for listing LLMs
@@ -471,8 +497,9 @@ if (process.argv.length === 2) {
 		console.error('Error: URL is required');
 		process.exit(1);
 	}
-	const outputFormat = await promptForOutputFormat();
-	await performReview(url, undefined, outputFormat);
+	const llmProvider = await promptForLlm(),
+		outputFormat = await promptForOutputFormat();
+	await performReview(url, llmProvider, outputFormat);
 } else {
 	program.parse();
 }
