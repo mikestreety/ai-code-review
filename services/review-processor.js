@@ -38,17 +38,17 @@ export function parseReviewResponse(review, llmChoice) {
 
 export function getReviewStatistics(parsedReview) {
 	const totalComments = parsedReview.comments.length,
-		blockingIssues = parsedReview.comments.filter(c => c.comment.includes('issue')).length,
-		suggestions = parsedReview.comments.filter(c => c.comment.includes('suggestion')).length,
-		praiseCount = parsedReview.comments.filter(c => c.comment.includes('praise')).length,
-		todoCount = parsedReview.comments.filter(c => c.comment.includes('todo')).length,
-		questionCount = parsedReview.comments.filter(c => c.comment.includes('question')).length,
-		nitpickCount = parsedReview.comments.filter(c => c.comment.includes('nitpick')).length,
-		noteCount = parsedReview.comments.filter(c => c.comment.includes('note')).length;
+		issueCount = parsedReview.comments.filter(c => c.comment.match(/^issue:/i)).length,
+		suggestions = parsedReview.comments.filter(c => c.comment.match(/^suggestion:/i)).length,
+		praiseCount = parsedReview.comments.filter(c => c.comment.match(/^praise:/i)).length,
+		todoCount = parsedReview.comments.filter(c => c.comment.match(/^todo:/i)).length,
+		questionCount = parsedReview.comments.filter(c => c.comment.match(/^question:/i)).length,
+		nitpickCount = parsedReview.comments.filter(c => c.comment.match(/^nitpick:/i)).length,
+		noteCount = parsedReview.comments.filter(c => c.comment.match(/^note:/i)).length;
 
 	return {
 		totalComments,
-		blockingIssues,
+		issueCount,
 		suggestions,
 		praiseCount,
 		todoCount,
