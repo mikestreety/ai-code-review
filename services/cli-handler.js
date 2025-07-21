@@ -87,31 +87,19 @@ async function handleReviewCommand(urlOrBranch, options) {
 		process.exit(1);
 	}
 
-	await (reviewMode === 'local' ? handleLocalReview(urlOrBranch, options) : handleGitLabReview(urlOrBranch, options));
-}
-
-async function handleLocalReview(urlOrBranch, options) {
-	// Determine branches
-	let currentBranch, baseBranch;
-
-	try {
-		const branchInfo = await determineBranchesForLocalReview(urlOrBranch, options);
-		currentBranch = branchInfo.currentBranch;
-		baseBranch = branchInfo.baseBranch;
-	} catch (error) {
-		console.error('Error:', error.message);
-		process.exit(1);
-	}
-
-	// Get LLM provider
-	let llmProvider = options.llm;
 	const forceLlm = getForceLlmProvider();
-	
+	let llmProvider = options.llm;
 	if (shouldForceValue(forceLlm)) {
 		llmProvider = forceLlm;
 	} else if (!process.argv.includes('--llm') && !process.argv.includes('-l')) {
 		llmProvider = await promptForLlm();
 	}
+
+	await (reviewMode === 'local' ? handleLocalReview(urlOrBranch, options, llmProvider) : handleGitLabReview(urlOrBranch, options, llmProvider));
+}
+
+
+async function handleLocalReview(urlOrBranch, options, llmProvider) {
 
 	// Get output format
 	let outputFormat = options.output;
@@ -136,26 +124,7 @@ async function handleLocalReview(urlOrBranch, options) {
 	await performLocalReview(currentBranch, baseBranch, llmProvider, outputFormat);
 }
 
-async function handleGitLabReview(urlOrBranch, options) {
-	// Get GitLab URL
-	let url = urlOrBranch;
-	if (!url || !url.startsWith('http')) {
-		url = await promptForUrl();
-		if (!url) {
-			console.error('Error: GitLab MR URL is required');
-			process.exit(1);
-		}
-	}
-
-	// Get LLM provider
-	let llmProvider = options.llm;
-	const forceLlm = getForceLlmProvider();
-	
-	if (shouldForceValue(forceLlm)) {
-		llmProvider = forceLlm;
-	} else if (!process.argv.includes('--llm') && !process.argv.includes('-l')) {
-		llmProvider = await promptForLlm();
-	}
+async function handleGitLabReview(urlOrBranch, options, llmProvider) {
 
 	// Get output format
 	let outputFormat = options.output;
