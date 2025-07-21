@@ -1,6 +1,12 @@
 import readline from 'node:readline';
 import { getCurrentBranch, getBaseBranch } from './local-git.js';
 import { getAvailableLlms } from './llm-discovery.js';
+import { 
+	getDefaultReviewMode, 
+	getDefaultLlmProvider, 
+	getDefaultOutputFormat, 
+	getDefaultLocalOutputFormat 
+} from './env-config.js';
 
 function createReadlineInterface() {
 	return readline.createInterface({
@@ -11,15 +17,16 @@ function createReadlineInterface() {
 
 export async function promptForReviewMode() {
 	const rl = createReadlineInterface();
+	const defaultMode = getDefaultReviewMode();
 
 	return new Promise((resolve) => {
 		console.log('\nReview mode options:');
 		console.log('  local  - Review local branch changes (compare current branch with base)');
 		console.log('  gitlab - Review GitLab Merge Request (requires MR URL)');
-		rl.question('\nChoose review mode [local/gitlab] (default: local): ', (answer) => {
+		rl.question(`\nChoose review mode [local/gitlab] (default: ${defaultMode}): `, (answer) => {
 			rl.close();
-			const mode = answer.trim().toLowerCase() || 'local';
-			resolve(['local', 'gitlab'].includes(mode) ? mode : 'local');
+			const mode = answer.trim().toLowerCase() || defaultMode;
+			resolve(['local', 'gitlab'].includes(mode) ? mode : defaultMode);
 		});
 	});
 }
@@ -58,6 +65,7 @@ export async function promptForBranches() {
 
 export async function promptForOutputFormat(isLocal = false) {
 	const rl = createReadlineInterface();
+	const defaultFormat = isLocal ? getDefaultLocalOutputFormat() : getDefaultOutputFormat();
 
 	return new Promise((resolve) => {
 		console.log('\nOutput format options:');
@@ -67,8 +75,7 @@ export async function promptForOutputFormat(isLocal = false) {
 		console.log('  html   - Generate beautiful HTML report file');
 		console.log('  cli    - Show linter-style console output');
 
-		const defaultFormat = isLocal ? 'html' : 'gitlab',
-			validFormats = isLocal ? ['html', 'cli'] : ['gitlab', 'html', 'cli'],
+		const validFormats = isLocal ? ['html', 'cli'] : ['gitlab', 'html', 'cli'],
 			formatOptions = isLocal ? 'html/cli' : 'gitlab/html/cli';
 
 		rl.question(`\nChoose output format [${formatOptions}] (default: ${defaultFormat}): `, (answer) => {
@@ -92,18 +99,22 @@ export async function promptForLlm() {
 	}
 
 	const rl = createReadlineInterface();
+	const defaultLlm = getDefaultLlmProvider();
+	const defaultIndex = defaultLlm && availableLlms.includes(defaultLlm) 
+		? availableLlms.indexOf(defaultLlm) + 1 
+		: 1;
 
 	return new Promise((resolve) => {
 		console.log('\nAvailable LLM providers:');
 		for (const [index, llm] of availableLlms.entries()) {
 			console.log(`  ${index + 1}. ${llm}`);
 		}
-		console.log(`\nDefault: ${availableLlms[0]}`);
+		console.log(`\nDefault: ${availableLlms[defaultIndex - 1]}`);
 
-		rl.question(`\nChoose LLM provider [1-${availableLlms.length}] (default: 1): `, (answer) => {
+		rl.question(`\nChoose LLM provider [1-${availableLlms.length}] (default: ${defaultIndex}): `, (answer) => {
 			rl.close();
-			const choice = Number.parseInt(answer.trim()) || 1,
-				selectedLlm = availableLlms[choice - 1] || availableLlms[0];
+			const choice = Number.parseInt(answer.trim()) || defaultIndex,
+				selectedLlm = availableLlms[choice - 1] || availableLlms[defaultIndex - 1];
 			resolve(selectedLlm);
 		});
 	});

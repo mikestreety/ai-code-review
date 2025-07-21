@@ -3,6 +3,14 @@ import { validateReviewMode, validateLocalOutputFormat, validateOutputFormat } f
 import { getAvailableLlms } from './llm-discovery.js';
 import { promptForReviewMode, promptForUrl, promptForBranches, promptForOutputFormat, promptForLlm } from './prompts.js';
 import { determineBranchesForLocalReview, performLocalReview, performGitLabReview } from './review-orchestrator.js';
+import { runSetup } from './setup.js';
+import { 
+	getForceReviewMode, 
+	getForceLlmProvider, 
+	getForceOutputFormat, 
+	getForceLocalOutputFormat,
+	shouldForceValue 
+} from './env-config.js';
 
 export function createCliProgram(packageJson) {
 	const program = new Command();
@@ -38,6 +46,14 @@ export function createCliProgram(packageJson) {
 			await listAvailableLlms();
 		});
 
+	// Add setup command
+	program
+		.command('setup')
+		.description('Configure default preferences and force options')
+		.action(async() => {
+			await runSetup();
+		});
+
 	return program;
 }
 
@@ -56,7 +72,11 @@ async function listAvailableLlms() {
 async function handleReviewCommand(urlOrBranch, options) {
 	// Determine review mode
 	let reviewMode = options.mode;
-	if (!process.argv.includes('--mode') && !process.argv.includes('-m')) {
+	const forceMode = getForceReviewMode();
+	
+	if (shouldForceValue(forceMode)) {
+		reviewMode = forceMode;
+	} else if (!process.argv.includes('--mode') && !process.argv.includes('-m')) {
 		reviewMode = await promptForReviewMode();
 	}
 
@@ -85,13 +105,21 @@ async function handleLocalReview(urlOrBranch, options) {
 
 	// Get LLM provider
 	let llmProvider = options.llm;
-	if (!process.argv.includes('--llm') && !process.argv.includes('-l')) {
+	const forceLlm = getForceLlmProvider();
+	
+	if (shouldForceValue(forceLlm)) {
+		llmProvider = forceLlm;
+	} else if (!process.argv.includes('--llm') && !process.argv.includes('-l')) {
 		llmProvider = await promptForLlm();
 	}
 
 	// Get output format
 	let outputFormat = options.output;
-	if (!process.argv.includes('--output') && !process.argv.includes('-o')) {
+	const forceLocalOutput = getForceLocalOutputFormat();
+	
+	if (shouldForceValue(forceLocalOutput)) {
+		outputFormat = forceLocalOutput;
+	} else if (!process.argv.includes('--output') && !process.argv.includes('-o')) {
 		outputFormat = await promptForOutputFormat(true);
 	} else if (options.output) {
 		try {
@@ -121,13 +149,21 @@ async function handleGitLabReview(urlOrBranch, options) {
 
 	// Get LLM provider
 	let llmProvider = options.llm;
-	if (!process.argv.includes('--llm') && !process.argv.includes('-l')) {
+	const forceLlm = getForceLlmProvider();
+	
+	if (shouldForceValue(forceLlm)) {
+		llmProvider = forceLlm;
+	} else if (!process.argv.includes('--llm') && !process.argv.includes('-l')) {
 		llmProvider = await promptForLlm();
 	}
 
 	// Get output format
 	let outputFormat = options.output;
-	if (!process.argv.includes('--output') && !process.argv.includes('-o')) {
+	const forceOutput = getForceOutputFormat();
+	
+	if (shouldForceValue(forceOutput)) {
+		outputFormat = forceOutput;
+	} else if (!process.argv.includes('--output') && !process.argv.includes('-o')) {
 		outputFormat = await promptForOutputFormat(false);
 	} else if (options.output) {
 		try {
@@ -145,12 +181,18 @@ async function handleGitLabReview(urlOrBranch, options) {
 }
 
 export async function handleInteractiveMode() {
-	const reviewMode = await promptForReviewMode();
+	const forceMode = getForceReviewMode();
+	const reviewMode = shouldForceValue(forceMode) ? forceMode : await promptForReviewMode();
 
 	if (reviewMode === 'local') {
-		const branchInfo = await promptForBranches(),
-			llmProvider = await promptForLlm(),
-			outputFormat = await promptForOutputFormat(true);
+		const branchInfo = await promptForBranches();
+		
+		const forceLlm = getForceLlmProvider();
+		const llmProvider = shouldForceValue(forceLlm) ? forceLlm : await promptForLlm();
+		
+		const forceLocalOutput = getForceLocalOutputFormat();
+		const outputFormat = shouldForceValue(forceLocalOutput) ? forceLocalOutput : await promptForOutputFormat(true);
+		
 		await performLocalReview(branchInfo.currentBranch, branchInfo.baseBranch, llmProvider, outputFormat);
 	} else {
 		const url = await promptForUrl();
@@ -158,8 +200,13 @@ export async function handleInteractiveMode() {
 			console.error('Error: GitLab MR URL is required');
 			process.exit(1);
 		}
-		const llmProvider = await promptForLlm(),
-			outputFormat = await promptForOutputFormat(false);
+		
+		const forceLlm = getForceLlmProvider();
+		const llmProvider = shouldForceValue(forceLlm) ? forceLlm : await promptForLlm();
+		
+		const forceOutput = getForceOutputFormat();
+		const outputFormat = shouldForceValue(forceOutput) ? forceOutput : await promptForOutputFormat(false);
+		
 		await performGitLabReview(url, llmProvider, outputFormat);
 	}
 }
