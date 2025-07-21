@@ -34,13 +34,7 @@ export async function runCodeReview(llmName, codeDiff, fullFileContext) {
 		// Debug: show first 500 chars of prompt
 		console.log('Prompt preview:', `${prompt.slice(0, 500)}...`);
 
-		// Prepare arguments
-		const arguments_ = [...llmConfig.args];
-		if (!llmConfig.useStdin) {
-			arguments_.push(prompt);
-		}
-
-		const llmProcess = spawn(llmConfig.cliPath, arguments_, {
+		const llmProcess = spawn(llmConfig.cliPath, llmConfig.args, {
 			stdio: ['pipe', 'pipe', 'pipe'],
 		});
 
@@ -81,13 +75,11 @@ export async function runCodeReview(llmName, codeDiff, fullFileContext) {
 			reject(new Error(`Failed to start ${llmName.toUpperCase()} CLI: ${error.message}`));
 		});
 
-		// Write the prompt to stdin if required
-		if (llmConfig.useStdin) {
-			console.log(`Writing prompt to ${llmName.toUpperCase()} CLI stdin...`);
-			llmProcess.stdin.write(prompt);
-			llmProcess.stdin.end();
-			console.log(`Prompt written to ${llmName.toUpperCase()} CLI, waiting for response...`);
-		}
+		// Write the prompt to stdin
+		console.log(`Writing prompt to ${llmName.toUpperCase()} CLI stdin...`);
+		llmProcess.stdin.write(prompt);
+		llmProcess.stdin.end();
+		console.log(`Prompt written to ${llmName.toUpperCase()} CLI, waiting for response...`);
 	});
 }
 
