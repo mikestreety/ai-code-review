@@ -38,14 +38,22 @@ export function parseReviewResponse(review, llmChoice) {
 
 export function getReviewStatistics(parsedReview) {
 	const totalComments = parsedReview.comments.length,
-		blockingIssues = parsedReview.comments.filter(c => c.comment.includes('(blocking)')).length,
+		blockingIssues = parsedReview.comments.filter(c => c.comment.includes('issue')).length,
 		suggestions = parsedReview.comments.filter(c => c.comment.includes('suggestion')).length,
-		praiseCount = parsedReview.comments.filter(c => c.comment.includes('praise')).length;
+		praiseCount = parsedReview.comments.filter(c => c.comment.includes('praise')).length,
+		todoCount = parsedReview.comments.filter(c => c.comment.includes('todo')).length,
+		questionCount = parsedReview.comments.filter(c => c.comment.includes('question')).length,
+		nitpickCount = parsedReview.comments.filter(c => c.comment.includes('nitpick')).length,
+		noteCount = parsedReview.comments.filter(c => c.comment.includes('note')).length;
 
 	return {
 		totalComments,
 		blockingIssues,
 		suggestions,
 		praiseCount,
+		todoCount,
+		questionCount,
+		nitpickCount,
+		noteCount,
 	};
 }
