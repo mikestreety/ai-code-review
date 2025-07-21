@@ -188,18 +188,28 @@ export function generateHtmlReport(parsedReview, llmChoice, fileContext = null) 
 
         function toggleFilter(category) {
             if (category === 'all') {
-                // Toggle all comments visibility
+                // If all is currently active, keep it active but turn off all others
+                // If all is currently inactive, turn everything on
                 const allActive = filterState.all;
-                Object.keys(filterState).forEach(key => {
-                    filterState[key] = !allActive;
-                });
+                if (allActive) {
+                    // Turn off all specific categories, keep 'all' active
+                    Object.keys(filterState).forEach(key => {
+                        if (key !== 'all') {
+                            filterState[key] = false;
+                        }
+                    });
+                } else {
+                    // Turn everything on
+                    Object.keys(filterState).forEach(key => {
+                        filterState[key] = true;
+                    });
+                }
             } else {
                 // Toggle specific category
                 filterState[category] = !filterState[category];
                 
                 // Update 'all' state based on other categories
                 const nonAllCategories = Object.keys(filterState).filter(k => k !== 'all');
-                const allCategoriesActive = nonAllCategories.every(k => filterState[k]);
                 const anyCategoriesActive = nonAllCategories.some(k => filterState[k]);
                 
                 filterState.all = anyCategoriesActive;
@@ -240,9 +250,8 @@ export function generateHtmlReport(parsedReview, llmChoice, fileContext = null) 
                     }
                 }
                 
-                // Show comment if ANY of its categories are active
-                const shouldShow = commentCategories.some(cat => filterState[cat]) || 
-                                  (commentCategories.length === 0 && filterState.all);
+                // Show comment if 'all' is active OR if ANY of its specific categories are active
+                const shouldShow = filterState.all || commentCategories.some(cat => filterState[cat]);
                 
                 comment.classList.toggle('hidden', !shouldShow);
             });
