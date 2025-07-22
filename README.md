@@ -430,13 +430,28 @@ For troubleshooting, check the console output which includes:
 
 ## Contributing
 
+This project follows a strict development workflow documented in `CLAUDE.md`. All feature development must:
+
+1. Create a dedicated feature branch
+2. Implement the requested functionality
+3. **Test using the tool on its own codebase** (dogfooding)
+4. Implement ALL feedback from self-review
+5. Update documentation as needed
+6. Create comprehensive commit with co-authorship
+7. Push and prepare for merge to main
+
+### For Human Contributors
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
 4. Run the linter: `npm run lint`
-5. Commit your changes
-6. Push to your fork
-7. Create a Pull Request
+5. Test your changes thoroughly
+6. Commit your changes
+7. Push to your fork
+8. Create a Pull Request
+
+### Development Workflow
+See `CLAUDE.md` for detailed development standards and mandatory testing procedures.
 
 ## License
 

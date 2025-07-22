@@ -1,0 +1,28 @@
+{
+  "project": "gitlab-mr-reviewer",
+  "workflow": {
+    "mandatory_branching": true,
+    "self_testing_required": true,
+    "feedback_implementation_required": true,
+    "documentation_updates_required": true
+  },
+  "testing": {
+    "dogfooding_command": "node ./bin/run.js review -m local -l claude -o html -b main",
+    "verification_commands": [
+      "node ./bin/run.js --help",
+      "node ./bin/run.js list-llms",
+      "node ./bin/run.js review --help"
+    ],
+    "interactive_test": "node ./bin/run.js"
+  },
+  "quality_gates": {
+    "blocking_issues": "must_fix",
+    "critical_suggestions": "must_implement", 
+    "performance_issues": "must_address",
+    "security_concerns": "must_fix",
+    "backwards_compatibility": "must_maintain"
+  },
+  "branch_naming": "feature/[descriptive-name]",
+  "commit_format": "conventional_with_coauthor",
+  "merge_target": "main"
+}
