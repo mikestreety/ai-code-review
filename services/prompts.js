@@ -1,4 +1,4 @@
-import readline from 'node:readline';
+import inquirer from 'inquirer';
 import { getCurrentBranch, getBaseBranch } from './local-git.js';
 import { getAvailableLlms } from './llm-discovery.js';
 import { 
@@ -8,82 +8,108 @@ import {
 	getDefaultLocalOutputFormat 
 } from './env-config.js';
 
-function createReadlineInterface() {
-	return readline.createInterface({
-		input: process.stdin,
-		output: process.stdout,
-	});
-}
-
 export async function promptForReviewMode() {
-	const rl = createReadlineInterface();
 	const defaultMode = getDefaultReviewMode();
 
-	return new Promise((resolve) => {
-		console.log('\nReview mode options:');
-		console.log('  local  - Review local branch changes (compare current branch with base)');
-		console.log('  gitlab - Review GitLab Merge Request (requires MR URL)');
-		rl.question(`\nChoose review mode [local/gitlab] (default: ${defaultMode}): `, (answer) => {
-			rl.close();
-			const mode = answer.trim().toLowerCase() || defaultMode;
-			resolve(['local', 'gitlab'].includes(mode) ? mode : defaultMode);
-		});
-	});
+	const { reviewMode } = await inquirer.prompt([
+		{
+			type: 'list',
+			name: 'reviewMode',
+			message: 'Choose review mode:',
+			choices: [
+				{
+					name: 'local - Review local branch changes (compare current branch with base)',
+					value: 'local'
+				},
+				{
+					name: 'gitlab - Review GitLab Merge Request (requires MR URL)',
+					value: 'gitlab'
+				}
+			],
+			default: defaultMode
+		}
+	]);
+
+	return reviewMode;
 }
 
 export async function promptForUrl() {
-	const rl = createReadlineInterface();
+	const { url } = await inquirer.prompt([
+		{
+			type: 'input',
+			name: 'url',
+			message: 'Enter the GitLab Merge Request URL:',
+			validate: (input) => {
+				if (!input.trim()) {
+					return 'Please enter a valid GitLab MR URL';
+				}
+				if (!input.includes('merge_requests')) {
+					return 'Please enter a valid GitLab merge request URL';
+				}
+				return true;
+			}
+		}
+	]);
 
-	return new Promise((resolve) => {
-		rl.question('Please enter the GitLab Merge Request URL: ', (answer) => {
-			rl.close();
-			resolve(answer.trim());
-		});
-	});
+	return url.trim();
 }
 
 export async function promptForBranches() {
-	const rl = createReadlineInterface();
+	const currentBranch = await getCurrentBranch();
+	const suggestedBase = await getBaseBranch(currentBranch);
 
-	try {
-		const currentBranch = await getCurrentBranch(),
-			suggestedBase = await getBaseBranch(currentBranch);
+	const { baseBranch } = await inquirer.prompt([
+		{
+			type: 'input',
+			name: 'baseBranch',
+			message: `Base branch to compare against (current: ${currentBranch}):`,
+			default: suggestedBase,
+			validate: (input) => {
+				if (!input.trim()) {
+					return 'Please enter a base branch name';
+				}
+				return true;
+			}
+		}
+	]);
 
-		return new Promise((resolve) => {
-			console.log(`\nCurrent branch: ${currentBranch}`);
-			rl.question(`Base branch to compare against (default: ${suggestedBase}): `, (answer) => {
-				rl.close();
-				const baseBranch = answer.trim() || suggestedBase;
-				resolve({ currentBranch, baseBranch });
-			});
-		});
-	} catch (error) {
-		rl.close();
-		throw error;
-	}
+	return { currentBranch, baseBranch };
 }
 
 export async function promptForOutputFormat(isLocal = false) {
-	const rl = createReadlineInterface();
 	const defaultFormat = isLocal ? getDefaultLocalOutputFormat() : getDefaultOutputFormat();
-
-	return new Promise((resolve) => {
-		console.log('\nOutput format options:');
-		if (!isLocal) {
-			console.log('  gitlab - Post comments directly to GitLab MR (default)');
-		}
-		console.log('  html   - Generate beautiful HTML report file');
-		console.log('  cli    - Show linter-style console output');
-
-		const validFormats = isLocal ? ['html', 'cli'] : ['gitlab', 'html', 'cli'],
-			formatOptions = isLocal ? 'html/cli' : 'gitlab/html/cli';
-
-		rl.question(`\nChoose output format [${formatOptions}] (default: ${defaultFormat}): `, (answer) => {
-			rl.close();
-			const format = answer.trim().toLowerCase() || defaultFormat;
-			resolve(validFormats.includes(format) ? format : defaultFormat);
+	
+	const choices = [];
+	
+	if (!isLocal) {
+		choices.push({
+			name: 'gitlab - Post comments directly to GitLab MR',
+			value: 'gitlab'
 		});
-	});
+	}
+	
+	choices.push(
+		{
+			name: 'html - Generate beautiful HTML report file',
+			value: 'html'
+		},
+		{
+			name: 'cli - Show linter-style console output',
+			value: 'cli'
+		}
+	);
+
+	const { outputFormat } = await inquirer.prompt([
+		{
+			type: 'list',
+			name: 'outputFormat',
+			message: 'Choose output format:',
+			choices,
+			default: defaultFormat
+		}
+	]);
+
+	return outputFormat;
 }
 
 export async function promptForLlm() {
@@ -94,28 +120,25 @@ export async function promptForLlm() {
 	}
 
 	if (availableLlms.length === 1) {
-		console.log(`\nUsing ${availableLlms[0]} (only available LLM)`);
+		console.log(`\n✓ Using ${availableLlms[0]} (only available LLM)`);
 		return availableLlms[0];
 	}
 
-	const rl = createReadlineInterface();
 	const defaultLlm = getDefaultLlmProvider();
-	const defaultIndex = defaultLlm && availableLlms.includes(defaultLlm) 
-		? availableLlms.indexOf(defaultLlm) + 1 
-		: 1;
+	const defaultValue = (defaultLlm && availableLlms.includes(defaultLlm)) ? defaultLlm : availableLlms[0];
 
-	return new Promise((resolve) => {
-		console.log('\nAvailable LLM providers:');
-		for (const [index, llm] of availableLlms.entries()) {
-			console.log(`  ${index + 1}. ${llm}`);
+	const { llmProvider } = await inquirer.prompt([
+		{
+			type: 'list',
+			name: 'llmProvider',
+			message: 'Choose LLM provider:',
+			choices: availableLlms.map(llm => ({
+				name: llm,
+				value: llm
+			})),
+			default: defaultValue
 		}
-		console.log(`\nDefault: ${availableLlms[defaultIndex - 1]}`);
+	]);
 
-		rl.question(`\nChoose LLM provider [1-${availableLlms.length}] (default: ${defaultIndex}): `, (answer) => {
-			rl.close();
-			const choice = Number.parseInt(answer.trim()) || defaultIndex,
-				selectedLlm = availableLlms[choice - 1] || availableLlms[defaultIndex - 1];
-			resolve(selectedLlm);
-		});
-	});
+	return llmProvider;
 }

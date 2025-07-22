@@ -64,7 +64,7 @@ AI-powered code reviews for GitLab Merge Requests and local git branches using v
 
 ## Usage
 
-This tool uses [oclif](https://oclif.io/) as its CLI framework, providing a professional command-line interface with built-in help, argument validation, and consistent behavior.
+This tool uses [oclif](https://oclif.io/) as its CLI framework, providing a professional command-line interface with built-in help, argument validation, and consistent behavior. The interface now features enhanced user experience with Inquirer.js for interactive prompts and Ora for elegant loading animations.
 
 ### Command Structure
 

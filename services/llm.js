@@ -28,11 +28,8 @@ export async function runCodeReview(llmName, codeDiff, fullFileContext) {
 			.replace('{CODE_DIFF}', escapeBackticks(codeDiff));
 
 	return new Promise((resolve, reject) => {
-		console.log(`Starting ${llmName.toUpperCase()} CLI process...`);
-		console.log('Prompt length:', prompt.length, 'characters');
-
-		// Debug: show first 500 chars of prompt
-		console.log('Prompt preview:', `${prompt.slice(0, 500)}...`);
+		// Debug info (less verbose to work better with spinners)
+		process.stderr.write(`\n📤 Prompt: ${prompt.length} chars | Preview: ${prompt.slice(0, 100)}...\n`);
 
 		const llmProcess = spawn(llmConfig.cliPath, llmConfig.args, {
 			stdio: ['pipe', 'pipe', 'pipe'],
@@ -49,37 +46,33 @@ export async function runCodeReview(llmName, codeDiff, fullFileContext) {
 
 		llmProcess.stdout.on('data', (data) => {
 			stdout += data.toString();
-			console.log(`${llmName.toUpperCase()} output received:`, data.toString().length, 'characters');
+			// Less verbose output that doesn't interfere with spinners
+			process.stderr.write('.');
 		});
 
 		llmProcess.stderr.on('data', (data) => {
 			stderr += data.toString();
-			console.log(`${llmName.toUpperCase()} stderr:`, data.toString());
 		});
 
 		llmProcess.on('close', (code) => {
 			clearTimeout(timeout);
-			console.log(`${llmName.toUpperCase()} CLI process closed with code ${code}`);
+			process.stderr.write('\n'); // End the dots line
 			if (code === 0) {
-				console.log(`${llmName.toUpperCase()} CLI completed successfully, output length:`, stdout.length);
 				resolve(stdout);
 			} else {
-				console.error(`Error running ${llmName.toUpperCase()} CLI:`, stderr);
 				reject(new Error(`${llmName.toUpperCase()} CLI execution failed with code ${code}: ${stderr}`));
 			}
 		});
 
 		llmProcess.on('error', (error) => {
 			clearTimeout(timeout);
-			console.error(`Failed to start ${llmName.toUpperCase()} CLI:`, error);
+			process.stderr.write('\n'); // End the dots line
 			reject(new Error(`Failed to start ${llmName.toUpperCase()} CLI: ${error.message}`));
 		});
 
 		// Write the prompt to stdin
-		console.log(`Writing prompt to ${llmName.toUpperCase()} CLI stdin...`);
 		llmProcess.stdin.write(prompt);
 		llmProcess.stdin.end();
-		console.log(`Prompt written to ${llmName.toUpperCase()} CLI, waiting for response...`);
 	});
 }
 
