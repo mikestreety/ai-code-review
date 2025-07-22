@@ -54,7 +54,7 @@ function findBestLineMatch(lines, originalIndex, searchRange) {
 	const end = Math.min(lines.length - 1, originalIndex + searchRange);
 	
 	// First, search backwards for a non-empty line
-	for (let i = originalIndex; i >= start; i--) {
+	for (let i = originalIndex - 1; i >= start; i--) {
 		if (lines[i] && lines[i].trim()) {
 			return i;
 		}
