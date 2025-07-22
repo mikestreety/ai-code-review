@@ -7,11 +7,21 @@ export function extractCodeSnippet(fileContent, lineNumber, contextLines = 3) {
 		return null;
 	}
 
-	const lines = fileContent.split('\n'),
-		targetLineIndex = lineNumber - 1; // Convert to 0-based index
+	const lines = fileContent.split('\n');
+	let targetLineIndex = lineNumber - 1; // Convert to 0-based index
 
 	if (targetLineIndex >= lines.length) {
 		return null;
+	}
+
+	// Check if the target line is empty and try to find a better match nearby
+	let adjustedLineNumber = lineNumber;
+	if (!lines[targetLineIndex] || lines[targetLineIndex].trim() === '') {
+		const betterMatch = findBestLineMatch(lines, targetLineIndex, 3);
+		if (betterMatch !== null) {
+			targetLineIndex = betterMatch;
+			adjustedLineNumber = betterMatch + 1;
+		}
 	}
 
 	// Calculate snippet bounds
@@ -31,9 +41,34 @@ export function extractCodeSnippet(fileContent, lineNumber, contextLines = 3) {
 	return {
 		startLine: startLine + 1,
 		endLine: endLine + 1,
-		targetLine: lineNumber,
+		targetLine: adjustedLineNumber,
+		originalTargetLine: lineNumber,
+		adjusted: adjustedLineNumber !== lineNumber,
 		lines: snippetLines,
 	};
+}
+
+function findBestLineMatch(lines, originalIndex, searchRange) {
+	// Look for non-empty lines near the original position
+	const start = Math.max(0, originalIndex - searchRange);
+	const end = Math.min(lines.length - 1, originalIndex + searchRange);
+	
+	// First, search backwards for a non-empty line
+	for (let i = originalIndex; i >= start; i--) {
+		if (lines[i] && lines[i].trim()) {
+			return i;
+		}
+	}
+	
+	// Then search forwards for a non-empty line
+	for (let i = originalIndex + 1; i <= end; i++) {
+		if (lines[i] && lines[i].trim()) {
+			return i;
+		}
+	}
+	
+	// If no non-empty line found, return original
+	return originalIndex;
 }
 
 export function parseFileContents(fileContext) {
