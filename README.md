@@ -57,40 +57,51 @@ AI-powered code reviews for GitLab Merge Requests and local git branches using v
 
 4. **Verify LLM availability**:
    ```bash
+   node ./bin/run.js list-llms
+   # or
    npm start list-llms
    ```
 
 ## Usage
 
+This tool uses [oclif](https://oclif.io/) as its CLI framework, providing a professional command-line interface with built-in help, argument validation, and consistent behavior.
+
 ### Command Structure
 
 ```bash
 # Fully interactive mode (prompts for review mode, then appropriate options)
+node ./bin/run.js
+# or
 npm start
 
 # Interactive mode with command
+node ./bin/run.js review
+# or  
 npm start review
 
 # Local branch review (compare current branch with base)
-npm start review --mode local
+node ./bin/run.js review --mode local
 
 # GitLab MR review
-npm start review <merge-request-url> --mode gitlab
+node ./bin/run.js review <merge-request-url> --mode gitlab
 
 # Specify all options for local review
-npm start review my-feature-branch --mode local --base main --llm claude --output html
+node ./bin/run.js review my-feature-branch --mode local --base main --llm claude --output html
 
 # Specify all options for GitLab review
-npm start review <merge-request-url> --mode gitlab --llm claude --output gitlab
+node ./bin/run.js review <merge-request-url> --mode gitlab --llm claude --output gitlab
 
 # List available LLMs
-npm start list-llms
+node ./bin/run.js list-llms
+
+# Configure setup
+node ./bin/run.js setup
 ```
 
 ### All Available Options
 
 ```bash
-npm start review [url_or_branch] [options]
+node ./bin/run.js review [url_or_branch] [options]
 
 Arguments:
   url_or_branch          GitLab MR URL or local branch name (optional, will prompt if missing)
@@ -102,13 +113,14 @@ Options:
   -o, --output <format>  Output format: gitlab (GitLab mode), html, cli
   --list-llms            List available LLM providers and exit
   -h, --help             Display help information
-  -V, --version          Display version number
 ```
 
 ### Usage Examples
 
 #### 1. Fully Interactive Mode
 ```bash
+node ./bin/run.js
+# or
 npm start
 # Prompts for:
 # - Review mode (local/gitlab)
@@ -121,25 +133,25 @@ npm start
 
 **Compare current branch with auto-detected base:**
 ```bash
-npm start review --mode local
+node ./bin/run.js review --mode local
 # Automatically detects current branch and suggests base branch (main/master/develop)
 ```
 
 **Compare specific branch with base:**
 ```bash
-npm start review my-feature-branch --mode local --base main
+node ./bin/run.js review my-feature-branch --mode local --base main
 # Compares my-feature-branch with main branch
 ```
 
 **Complete local review with all options:**
 ```bash
-npm start review --mode local --base main --llm claude --output html
+node ./bin/run.js review --mode local --base main --llm claude --output html
 # Generates HTML report comparing current branch with main using Claude
 ```
 
 **Local review with CLI output:**
 ```bash
-npm start review my-feature --mode local --llm gemini --output cli
+node ./bin/run.js review my-feature --mode local --llm gemini --output cli
 # Shows linter-style output in console
 ```
 

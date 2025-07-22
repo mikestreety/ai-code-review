@@ -2,18 +2,32 @@
   "name": "gitlab-mr-reviewer",
   "version": "1.0.0",
   "description": "Automated GitLab MR code reviews using Gemini or Claude",
-  "main": "index.js",
+  "main": "./bin/run.js",
   "type": "module",
+  "bin": {
+    "gitlab-mr-reviewer": "./bin/run.js"
+  },
   "scripts": {
-    "start": "node index.js",
+    "start": "node ./bin/run.js",
     "lint": "npm run eslint:fix",
     "eslint:dry-run": "eslint ./ --color --cache --config eslint.config.js --cache-location .cache/ --cache-strategy content",
     "eslint:fix": "npm run eslint:dry-run -- --fix"
   },
   "dependencies": {
     "@lintkit/eslint-config": "^2.1.0",
-    "commander": "^14.0.0",
+    "@oclif/core": "^4.5.1",
+    "@oclif/plugin-help": "^6.2.31",
     "dotenv": "^16.3.1",
     "node-fetch": "^3.3.2"
+  },
+  "oclif": {
+    "bin": "gitlab-mr-reviewer",
+    "dirname": "gitlab-mr-reviewer",
+    "commands": "./src/commands",
+    "topicSeparator": " ",
+    "topics": {},
+    "plugins": [
+      "@oclif/plugin-help"
+    ]
   }
 }
