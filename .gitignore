@@ -1,6 +1,8 @@
 # Linting
 .cache
 
+todo.txt
+
 .claude
 
 code-review*
