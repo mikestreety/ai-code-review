@@ -129,11 +129,17 @@ export function generateHtmlReport(parsedReview, llmChoice, fileContext = null) 
 						const extension = getFileExtension(comment.file),
 							language = getLanguageFromExtension(extension);
 
+						let adjustmentInfo = '';
+						if (snippet.adjusted && snippet.adjustmentReason) {
+							const confidenceText = snippet.confidence >= 0.8 ? 'high' : snippet.confidence >= 0.6 ? 'medium' : 'low';
+							adjustmentInfo = `<span class="line-adjustment" title="Original line ${snippet.originalTargetLine} → Line ${snippet.targetLine}. ${snippet.adjustmentReason}. Confidence: ${confidenceText}">⚠️ Line adjusted: ${snippet.adjustmentReason}</span>`;
+						}
+
 						codeSnippetHtml = `
                         <div class="code-snippet">
                             <div class="code-snippet-header">
                                 ${comment.file} (${language})
-                                ${snippet.adjusted ? '<span class="line-adjustment">⚠️ Line adjusted for better context</span>' : ''}
+                                ${adjustmentInfo}
                             </div>
                             ${snippet.lines.map(line => `
                                 <div class="code-line ${line.isTarget ? 'target' : ''}">
