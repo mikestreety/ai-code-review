@@ -67,8 +67,10 @@ Provide your feedback in a structured JSON format. The JSON object should have t
 - The "summary" key should contain a high-level summary of the code review.
 - The "comments" key should be an array of objects, where each object has "file", "line", and "comment" keys.
   - "file": The path of the file to comment on.
-  - "line": The line number to comment on.
+  - "line": The line number to comment on (use ABSOLUTE line numbers from the full file context, NOT diff line numbers).
   - "comment": The comment text using Conventional Comments format.
+
+**IMPORTANT:** Line numbers must reference the absolute line numbers in the full file context provided above, not the relative line numbers shown in the diff. For example, if you see a problematic line in the diff, count its position from the beginning of the complete file to determine the correct line number.
 
 Example JSON output:
 ```json

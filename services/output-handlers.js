@@ -44,6 +44,7 @@ export function generateHtmlReport(parsedReview, llmChoice, fileContext = null) 
         .comment-header { display: flex; align-items: center; margin-bottom: 12px; }
         .file-path { font-family: 'SF Mono', Consolas, monospace; font-size: 14px; color: #059669; font-weight: 500; }
         .line-number { background: #f1f5f9; color: #475569; padding: 2px 8px; border-radius: 4px; font-family: 'SF Mono', Consolas, monospace; font-size: 12px; margin-left: 12px; }
+        .line-warning { color: #f59e0b; margin-left: 8px; cursor: help; }
         .comment-text { line-height: 1.6; color: #334155; }
         .label { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: 500; margin-right: 8px; }
         .label.issue { background: #fef2f2; color: #dc2626; }
@@ -161,6 +162,7 @@ export function generateHtmlReport(parsedReview, llmChoice, fileContext = null) 
                         <span class="label ${label}">${label}</span>
                         <span class="file-path">${comment.file}</span>
                         <span class="line-number">Line ${comment.line}</span>
+                        ${comment._lineWarning ? '<span class="line-warning" title="Warning: This line appears to be empty, which might indicate a line number mapping issue">⚠️</span>' : ''}
                     </div>
                     <div class="comment-text">${commentText}</div>
                     ${codeSnippetHtml}

@@ -3,7 +3,7 @@ import { cloneRepository } from './git.js';
 import { runCodeReview } from './llm.js';
 import { createTemporaryDirectory, cleanupDirectory, readFilesForContext } from '../utils/file-handler.js';
 import { validateEnvironment, validateLlmChoice, validateOutputFormat, validateLocalOutputFormat, parseGitLabUrl } from './validator.js';
-import { parseReviewResponse } from './review-processor.js';
+import { parseReviewResponse, validateAndFixLineNumbers } from './review-processor.js';
 import { handleOutput } from './output-handlers.js';
 import { validateGitRepository, getCurrentBranch, getBaseBranch, getBranchDiff, getChangedFilesLocal, readLocalFilesForContext, getBranchInfo } from './local-git.js';
 import { getAvailableLlms, isGitLabUrl } from './llm-discovery.js';
@@ -69,9 +69,10 @@ export async function performLocalReview(currentBranch, baseBranch, llmChoice, o
 		console.log(`✓ ${llmChoice.toUpperCase()} code review completed in ${(endTime - startTime) / 1000}s`);
 
 		const parsedReview = parseReviewResponse(review, llmChoice);
+		const validatedReview = validateAndFixLineNumbers(parsedReview, fileContext);
 
 		// Handle output (no GitLab params for local)
-		await handleOutput(outputFormat, parsedReview, llmChoice, null, fileContext);
+		await handleOutput(outputFormat, validatedReview, llmChoice, null, fileContext);
 	} catch (error) {
 		console.error('\nAn error occurred:', error.message);
 		process.exit(1);
@@ -108,19 +109,20 @@ export async function performGitLabReview(mrUrl, llmChoice, outputFormat = 'gitl
 			endTime = Date.now();
 		console.log(`✓ ${llmChoice.toUpperCase()} code review completed in ${(endTime - startTime) / 1000}s`);
 
-		const parsedReview = parseReviewResponse(review, llmChoice),
+		const parsedReview = parseReviewResponse(review, llmChoice);
+		const validatedReview = validateAndFixLineNumbers(parsedReview, analysisData.fileContext);
 
-			// Handle output
-			gitlabParameters = {
-				gitlabUrl,
-				projectId,
-				mergeRequestIid,
-				baseSha: mrData.baseSha,
-				startSha: mrData.startSha,
-				headSha: mrData.headSha,
-			};
+		// Handle output
+		const gitlabParameters = {
+			gitlabUrl,
+			projectId,
+			mergeRequestIid,
+			baseSha: mrData.baseSha,
+			startSha: mrData.startSha,
+			headSha: mrData.headSha,
+		};
 
-		await handleOutput(outputFormat, parsedReview, llmChoice, gitlabParameters, analysisData.fileContext);
+		await handleOutput(outputFormat, validatedReview, llmChoice, gitlabParameters, analysisData.fileContext);
 	} catch (error) {
 		console.error('\nAn error occurred:', error.message);
 		process.exit(1);

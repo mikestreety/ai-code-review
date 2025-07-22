@@ -1,3 +1,5 @@
+import { parseFileContents } from './code-snippet-extractor.js';
+
 export function parseReviewResponse(review, llmChoice) {
 	let parsedReview;
 	try {
@@ -55,5 +57,47 @@ export function getReviewStatistics(parsedReview) {
 		questionCount,
 		nitpickCount,
 		noteCount,
+	};
+}
+
+export function validateAndFixLineNumbers(parsedReview, fileContext) {
+	if (!fileContext || !parsedReview?.comments) {
+		return parsedReview;
+	}
+
+	const fileContents = parseFileContents(fileContext);
+	const validatedComments = [];
+
+	for (const comment of parsedReview.comments) {
+		const fileContent = fileContents.get(comment.file);
+		
+		if (!fileContent) {
+			console.warn(`Warning: File '${comment.file}' not found in context. Skipping comment.`);
+			continue;
+		}
+
+		const fileLines = fileContent.split('\n');
+		const maxLineNumber = fileLines.length;
+
+		// Validate line number
+		if (!comment.line || comment.line < 1 || comment.line > maxLineNumber) {
+			console.warn(`Warning: Invalid line number ${comment.line} for file '${comment.file}' (max: ${maxLineNumber}). Skipping comment.`);
+			continue;
+		}
+
+		// Check if the line is empty or whitespace only (might indicate a mapping issue)
+		const targetLine = fileLines[comment.line - 1];
+		if (!targetLine || targetLine.trim() === '') {
+			console.warn(`Warning: Line ${comment.line} in '${comment.file}' is empty. This might indicate a line number mapping issue.`);
+			// Still include the comment but flag it
+			comment._lineWarning = true;
+		}
+
+		validatedComments.push(comment);
+	}
+
+	return {
+		...parsedReview,
+		comments: validatedComments
 	};
 }
