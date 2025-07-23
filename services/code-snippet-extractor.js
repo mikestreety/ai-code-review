@@ -1,8 +1,27 @@
 /**
  * Advanced code snippet extractor with intelligent line matching for HTML reports
+ * Features dynamic pattern detection and language-aware code analysis
  */
 
-export function extractCodeSnippet(fileContent, lineNumber, contextLines = 3) {
+// Cache for language patterns and file analysis
+const patternCache = new Map();
+const fileAnalysisCache = new Map();
+const MAX_CACHE_SIZE = 100;
+
+// Cache cleanup to prevent memory leaks
+function cleanupCaches() {
+	if (patternCache.size > MAX_CACHE_SIZE) {
+		const keysToDelete = Array.from(patternCache.keys()).slice(0, patternCache.size - MAX_CACHE_SIZE);
+		keysToDelete.forEach(key => patternCache.delete(key));
+	}
+
+	if (fileAnalysisCache.size > MAX_CACHE_SIZE) {
+		const keysToDelete = Array.from(fileAnalysisCache.keys()).slice(0, fileAnalysisCache.size - MAX_CACHE_SIZE);
+		keysToDelete.forEach(key => fileAnalysisCache.delete(key));
+	}
+}
+
+export function extractCodeSnippet(fileContent, lineNumber, contextLines = 3, fileName = '') {
 	if (!fileContent || !lineNumber || lineNumber < 1 || !Number.isInteger(lineNumber) || contextLines < 0) {
 		return null;
 	}
@@ -15,7 +34,7 @@ export function extractCodeSnippet(fileContent, lineNumber, contextLines = 3) {
 	}
 
 	// Use intelligent line matching to find the most relevant code
-	const bestMatch = findBestCodeMatch(lines, targetLineIndex, 5);
+	const bestMatch = findBestCodeMatch(lines, targetLineIndex, 5, fileName);
 	const adjustedLineNumber = bestMatch.lineIndex + 1;
 	const wasAdjusted = bestMatch.lineIndex !== targetLineIndex;
 
@@ -51,9 +70,9 @@ export function extractCodeSnippet(fileContent, lineNumber, contextLines = 3) {
  * @param {number} searchRange - Search range around original position
  * @returns {Object} Best match with line index, reason, and confidence
  */
-function findBestCodeMatch(lines, originalIndex, searchRange = 5) {
+function findBestCodeMatch(lines, originalIndex, searchRange = 5, fileName = '') {
 	const originalLine = lines[originalIndex];
-	
+
 	// If original line has meaningful content, use it
 	if (originalLine && isSignificantCode(originalLine)) {
 		return {
@@ -64,7 +83,7 @@ function findBestCodeMatch(lines, originalIndex, searchRange = 5) {
 	}
 
 	// Strategy 1: Look for specific code patterns based on common issues
-	const patternMatch = findPatternMatch(lines, originalIndex, searchRange);
+	const patternMatch = findPatternMatch(lines, originalIndex, searchRange, fileName);
 	if (patternMatch) {
 		return patternMatch;
 	}
@@ -90,56 +109,24 @@ function findBestCodeMatch(lines, originalIndex, searchRange = 5) {
 }
 
 /**
- * Finds lines matching common vulnerability/issue patterns
+ * Dynamically finds lines matching common vulnerability/issue patterns based on language
+ * Uses intelligent pattern detection and caching for performance
  */
-function findPatternMatch(lines, originalIndex, searchRange) {
+function findPatternMatch(lines, originalIndex, searchRange, fileName = '') {
 	const start = Math.max(0, originalIndex - searchRange);
 	const end = Math.min(lines.length - 1, originalIndex + searchRange);
 
-	const patterns = [
-		// Date/time parsing issues
-		{
-			regex: /DateTime::createFromFormat|date_create_from_format|\$.*\-\>format\(/i,
-			reason: 'Found date parsing code',
-			confidence: 0.95
-		},
-		// Email/security vulnerabilities  
-		{
-			regex: /mail\(|setFrom|setBcc|setTo|@.*\..*['"]/i,
-			reason: 'Found email handling code',
-			confidence: 0.9
-		},
-		// SQL injection patterns
-		{
-			regex: /\$.*query.*\$|\$.*sql.*\$|mysql_query|executeQuery/i,
-			reason: 'Found SQL query code',
-			confidence: 0.9
-		},
-		// Array operations that can fail
-		{
-			regex: /array_combine|array_merge|array_intersect/i,
-			reason: 'Found array operation code',
-			confidence: 0.9
-		},
-		// File operations
-		{
-			regex: /file_get_contents|fopen|include.*\$|require.*\$/i,
-			reason: 'Found file operation code',
-			confidence: 0.85
-		},
-		// Input validation issues
-		{
-			regex: /\$_GET|\$_POST|\$_REQUEST|filter_var|htmlspecialchars/i,
-			reason: 'Found input handling code',
-			confidence: 0.8
-		},
-		// Configuration/hardcoded values
-		{
-			regex: /['"].*@.*\..*['"]|['"]http[s]?:\/\/|define\(|const\s+\w+\s*=/i,
-			reason: 'Found configuration/hardcoded values',
-			confidence: 0.85
-		}
-	];
+	// Get language-specific patterns with caching
+	const language = detectLanguageFromContent(lines, fileName);
+	const patterns = getLanguagePatterns(language, lines);
+
+	if (!patterns || patterns.length === 0) {
+		return null;
+	}
+
+	// Search for pattern matches with distance weighting
+	let bestMatch = null;
+	let bestScore = 0;
 
 	for (let i = start; i <= end; i++) {
 		const line = lines[i];
@@ -147,16 +134,209 @@ function findPatternMatch(lines, originalIndex, searchRange) {
 
 		for (const pattern of patterns) {
 			if (pattern.regex.test(line)) {
-				return {
-					lineIndex: i,
-					reason: pattern.reason,
-					confidence: pattern.confidence
-				};
+				// Calculate score based on confidence and distance from original
+				const distance = Math.abs(i - originalIndex);
+				const distancePenalty = distance * 0.1;
+				const score = pattern.confidence - distancePenalty;
+
+				if (score > bestScore) {
+					bestScore = score;
+					bestMatch = {
+						lineIndex: i,
+						reason: pattern.reason,
+						confidence: Math.max(0.1, score)
+					};
+				}
 			}
 		}
 	}
 
-	return null;
+	return bestMatch;
+}
+
+/**
+ * Detects programming language from file content and name
+ */
+function detectLanguageFromContent(lines, fileName = '') {
+	// Check cache first
+	const cacheKey = `${fileName}:${lines.length}`;
+	if (fileAnalysisCache.has(cacheKey)) {
+		return fileAnalysisCache.get(cacheKey);
+	}
+
+	let language = 'unknown';
+
+	// First try file extension
+	if (fileName) {
+		const ext = getFileExtension(fileName);
+		const langFromExt = getLanguageFromExtension(ext);
+		if (langFromExt !== 'text') {
+			language = langFromExt;
+		}
+	}
+
+	// If still unknown, analyze content patterns
+	if (language === 'unknown') {
+		language = detectLanguageFromSyntax(lines);
+	}
+
+	// Cache the result
+	fileAnalysisCache.set(cacheKey, language);
+	return language;
+}
+
+/**
+ * Detects language from syntax patterns in code
+ */
+function detectLanguageFromSyntax(lines) {
+	const sampleLines = lines.slice(0, Math.min(50, lines.length)).join('\n');
+
+	// Language indicators with confidence scores
+	const indicators = [
+		{ pattern: /\$[a-zA-Z_][\w]*/, language: 'php', weight: 3 },
+		{ pattern: /def\s+\w+\s*\(/, language: 'python', weight: 4 },
+		{ pattern: /import\s+\w+|from\s+\w+\s+import/, language: 'python', weight: 3 },
+		{ pattern: /function\s+\w+\s*\(|const\s+\w+\s*=|let\s+\w+\s*=/, language: 'javascript', weight: 3 },
+		{ pattern: /class\s+\w+\s*<|def\s+\w+|end\b/, language: 'ruby', weight: 4 },
+		{ pattern: /public\s+class|private\s+\w+|import\s+java/, language: 'java', weight: 4 },
+		{ pattern: /fn\s+\w+|let\s+mut|use\s+std::/, language: 'rust', weight: 4 },
+		{ pattern: /func\s+\w+|package\s+\w+|import\s+"/, language: 'go', weight: 4 },
+	];
+
+	let scores = {};
+
+	for (const { pattern, language, weight } of indicators) {
+		const matches = (sampleLines.match(pattern) || []).length;
+		scores[language] = (scores[language] || 0) + matches * weight;
+	}
+
+	// Return language with highest score, or 'unknown'
+	const maxLang = Object.keys(scores).reduce((a, b) => scores[a] > scores[b] ? a : b, 'unknown');
+	return scores[maxLang] > 0 ? maxLang : 'unknown';
+}
+
+/**
+ * Gets language-specific patterns with intelligent caching
+ */
+function getLanguagePatterns(language, lines) {
+	const cacheKey = `patterns:${language}`;
+
+	if (patternCache.has(cacheKey)) {
+		return patternCache.get(cacheKey);
+	}
+
+	const patterns = generateLanguagePatterns(language, lines);
+	patternCache.set(cacheKey, patterns);
+
+	return patterns;
+}
+
+/**
+ * Generates dynamic patterns based on language and content analysis
+ */
+function generateLanguagePatterns(language, lines) {
+	const basePatterns = getBasePatterns(language);
+	const contentPatterns = analyzeContentForPatterns(lines, language);
+
+	return [...basePatterns, ...contentPatterns];
+}
+
+/**
+ * Base patterns for different programming languages
+ */
+function getBasePatterns(language) {
+	const patterns = {
+		php: [
+			{ regex: /\$[a-zA-Z_][\w]*\s*=.*['\"].*['\"]/, reason: 'Variable assignment', confidence: 0.7 },
+			{ regex: /function\s+\w+\s*\(/, reason: 'Function definition', confidence: 0.8 },
+			{ regex: /class\s+\w+/, reason: 'Class definition', confidence: 0.8 },
+			{ regex: /if\s*\(.*\$/, reason: 'Conditional with variable', confidence: 0.7 },
+			{ regex: /\-\>\w+\s*\(/, reason: 'Method call', confidence: 0.7 },
+		],
+		python: [
+			{ regex: /def\s+\w+\s*\(/, reason: 'Function definition', confidence: 0.8 },
+			{ regex: /class\s+\w+\s*\(?\w*\)?:/, reason: 'Class definition', confidence: 0.8 },
+			{ regex: /if\s+.*:/, reason: 'Conditional statement', confidence: 0.7 },
+			{ regex: /for\s+\w+\s+in\s+/, reason: 'For loop', confidence: 0.7 },
+			{ regex: /import\s+\w+|from\s+\w+\s+import/, reason: 'Import statement', confidence: 0.6 },
+		],
+		javascript: [
+			{ regex: /function\s+\w+\s*\(|const\s+\w+\s*=\s*\(/, reason: 'Function definition', confidence: 0.8 },
+			{ regex: /class\s+\w+/, reason: 'Class definition', confidence: 0.8 },
+			{ regex: /if\s*\(.*\)/, reason: 'Conditional statement', confidence: 0.7 },
+			{ regex: /\.\w+\s*\(/, reason: 'Method call', confidence: 0.6 },
+			{ regex: /require\s*\(|import\s+.*from/, reason: 'Module import', confidence: 0.6 },
+		],
+		ruby: [
+			{ regex: /def\s+\w+/, reason: 'Method definition', confidence: 0.8 },
+			{ regex: /class\s+\w+/, reason: 'Class definition', confidence: 0.8 },
+			{ regex: /if\s+.*/, reason: 'Conditional statement', confidence: 0.7 },
+			{ regex: /\w+\.each\s+do|\w+\.map\s+do/, reason: 'Iterator block', confidence: 0.7 },
+			{ regex: /require\s+['\"]/, reason: 'Require statement', confidence: 0.6 },
+		],
+		java: [
+			{ regex: /public\s+class\s+\w+|private\s+class\s+\w+/, reason: 'Class definition', confidence: 0.8 },
+			{ regex: /public\s+\w+\s+\w+\s*\(|private\s+\w+\s+\w+\s*\(/, reason: 'Method definition', confidence: 0.8 },
+			{ regex: /if\s*\(.*\)/, reason: 'Conditional statement', confidence: 0.7 },
+			{ regex: /for\s*\(.*\)/, reason: 'For loop', confidence: 0.7 },
+			{ regex: /import\s+[\w.]+;/, reason: 'Import statement', confidence: 0.6 },
+		],
+	};
+
+	return patterns[language] || patterns.javascript; // Fallback to JavaScript patterns
+}
+
+/**
+ * Analyzes file content to discover project-specific patterns
+ */
+function analyzeContentForPatterns(lines, language) {
+	const patterns = [];
+	const functionNames = new Set();
+	const classNames = new Set();
+	const variablePatterns = new Set();
+
+	for (const line of lines.slice(0, Math.min(100, lines.length))) {
+		if (!line || line.trim().length === 0) continue;
+
+		// Extract function names
+		const funcMatch = line.match(/(?:function|def|fn)\s+(\w+)/i);
+		if (funcMatch) {
+			functionNames.add(funcMatch[1]);
+		}
+
+		// Extract class names
+		const classMatch = line.match(/class\s+(\w+)/i);
+		if (classMatch) {
+			classNames.add(classMatch[1]);
+		}
+
+		// Extract variable patterns based on language
+		if (language === 'php') {
+			const varMatch = line.match(/\$(\w+)/g);
+			if (varMatch) {
+				varMatch.forEach(v => variablePatterns.add(v));
+			}
+		}
+	}
+
+	// Generate patterns from discovered elements
+	functionNames.forEach(name => {
+		patterns.push({
+			regex: new RegExp(`\\b${name}\\s*\\(`, 'i'),
+			reason: `Call to function '${name}'`,
+			confidence: 0.75
+		});
+	});
+
+	classNames.forEach(name => {
+		patterns.push({
+			regex: new RegExp(`\\b${name}\\b`, 'i'),
+			reason: `Reference to class '${name}'`,
+			confidence: 0.7
+		});
+	});
+
+	return patterns;
 }
 
 /**
@@ -201,7 +381,7 @@ function findRelevantCodeBlock(lines, originalIndex, searchRange) {
 	const blockPatterns = [
 		// Function/method declarations
 		/^\s*(public|private|protected|function|def)\s+\w+/i,
-		// Class declarations  
+		// Class declarations
 		/^\s*(class|interface|trait)\s+\w+/i,
 		// Important statements
 		/^\s*(if|for|while|switch|try|catch)\s*\(/i,
@@ -236,7 +416,7 @@ function isSignificantCode(line) {
 	}
 
 	const trimmed = line.trim();
-	
+
 	// Empty lines
 	if (!trimmed) {
 		return false;
@@ -376,6 +556,11 @@ export function getFileExtension(filePath) {
 	return filePath.slice(Math.max(0, lastDotIndex + 1)).toLowerCase();
 }
 
+// Export cache cleanup function for external use
+export function clearPatternCaches() {
+	patternCache.clear();
+	fileAnalysisCache.clear();
+}
 export function getLanguageFromExtension(extension) {
 	const languageMap = {
 		js: 'javascript',
