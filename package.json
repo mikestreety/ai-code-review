@@ -1,11 +1,11 @@
 {
-  "name": "gitlab-mr-reviewer",
+  "name": "@mikestreety/ruck",
   "version": "1.0.0",
   "description": "Automated GitLab MR code reviews using Gemini or Claude",
   "main": "./bin/run.js",
   "type": "module",
   "bin": {
-    "gitlab-mr-reviewer": "./bin/run.js"
+    "ruck": "./bin/run.js"
   },
   "scripts": {
     "start": "node ./bin/run.js",
@@ -24,8 +24,8 @@
     "ora": "^8.2.0"
   },
   "oclif": {
-    "bin": "gitlab-mr-reviewer",
-    "dirname": "gitlab-mr-reviewer",
+    "bin": "ruck",
+    "dirname": "ruck",
     "commands": "./src/commands",
     "topicSeparator": " ",
     "topics": {},

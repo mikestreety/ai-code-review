@@ -1,7 +1,10 @@
 #!/usr/bin/env node
 
-import 'dotenv/config';
+import { initConfig } from '../services/config-loader.js';
 import { execute } from '@oclif/core';
+
+// Initialize configuration from .env and .ruckconfig
+initConfig();
 
 // Check if running in interactive mode (no command line arguments)
 if (process.argv.length === 2) {

@@ -1,4 +1,4 @@
-# GitLab MR Reviewer
+# Ruck
 
 ---
 
@@ -21,6 +21,44 @@ AI-powered code reviews for GitLab Merge Requests and local git branches using v
 
 ## Installation
 
+### Global Installation (Recommended)
+
+```bash
+# Install globally via npm
+npm install -g @mikestreety/ruck
+
+# Now use 'ruck' command anywhere
+ruck --help
+```
+
+### NPX Usage (No Installation)
+
+```bash
+# Run directly from GitHub
+npx https://github.com/mikestreety/ruck
+
+# Or run from npm registry
+npx @mikestreety/ruck
+```
+
+### Development Setup
+
+1. **Clone the repository**:
+   ```bash
+   git clone <repository-url>
+   cd ruck
+   ```
+
+2. **Install dependencies**:
+   ```bash
+   npm install
+   ```
+
+3. **Run locally**:
+   ```bash
+   node ./bin/run.js
+   ```
+
 ### Prerequisites
 
 1. **Node.js**: Version 16 or higher
@@ -34,32 +72,22 @@ AI-powered code reviews for GitLab Merge Requests and local git branches using v
    - [ChatGPT CLI](https://www.npmjs.com/package/chatgpt-cli)
    - [GitHub CLI](https://cli.github.com/) (for Copilot)
 
-### Setup
+### Configuration
 
-1. **Clone the repository**:
-   ```bash
-   git clone <repository-url>
-   cd gitlab-mr-reviewer
-   ```
+Create a `.ruckconfig` file in your home directory for centralized configuration:
 
-2. **Install dependencies**:
-   ```bash
-   npm install
-   ```
+```bash
+# ~/.ruckconfig
+GITLAB_PRIVATE_TOKEN=your_gitlab_token_here
+DEFAULT_LLM=claude
+DEFAULT_OUTPUT=html
+```
 
-3. **Configure environment** (GitLab mode only):
-   Create a `.env` file in the project root:
-   ```bash
-   GITLAB_PRIVATE_TOKEN=your_gitlab_token_here
-   ```
-   
-   **Note**: Local mode doesn't require GitLab token configuration.
+**Note**: Local mode doesn't require GitLab token configuration.
 
 4. **Verify LLM availability**:
    ```bash
-   node ./bin/run.js list-llms
-   # or
-   npm start list-llms
+   ruck list-llms
    ```
 
 ## Usage
@@ -70,38 +98,34 @@ This tool uses [oclif](https://oclif.io/) as its CLI framework, providing a prof
 
 ```bash
 # Fully interactive mode (prompts for review mode, then appropriate options)
-node ./bin/run.js
-# or
-npm start
+ruck
 
 # Interactive mode with command
-node ./bin/run.js review
-# or  
-npm start review
+ruck review
 
 # Local branch review (compare current branch with base)
-node ./bin/run.js review --mode local
+ruck review --mode local
 
 # GitLab MR review
-node ./bin/run.js review <merge-request-url> --mode gitlab
+ruck review <merge-request-url> --mode gitlab
 
 # Specify all options for local review
-node ./bin/run.js review my-feature-branch --mode local --base main --llm claude --output html
+ruck review my-feature-branch --mode local --base main --llm claude --output html
 
 # Specify all options for GitLab review
-node ./bin/run.js review <merge-request-url> --mode gitlab --llm claude --output gitlab
+ruck review <merge-request-url> --mode gitlab --llm claude --output gitlab
 
 # List available LLMs
-node ./bin/run.js list-llms
+ruck list-llms
 
 # Configure setup
-node ./bin/run.js setup
+ruck setup
 ```
 
 ### All Available Options
 
 ```bash
-node ./bin/run.js review [url_or_branch] [options]
+ruck review [url_or_branch] [options]
 
 Arguments:
   url_or_branch          GitLab MR URL or local branch name (optional, will prompt if missing)
@@ -119,9 +143,7 @@ Options:
 
 #### 1. Fully Interactive Mode
 ```bash
-node ./bin/run.js
-# or
-npm start
+ruck
 # Prompts for:
 # - Review mode (local/gitlab)
 # - Branch information OR GitLab MR URL
@@ -133,25 +155,25 @@ npm start
 
 **Compare current branch with auto-detected base:**
 ```bash
-node ./bin/run.js review --mode local
+ruck review --mode local
 # Automatically detects current branch and suggests base branch (main/master/develop)
 ```
 
 **Compare specific branch with base:**
 ```bash
-node ./bin/run.js review my-feature-branch --mode local --base main
+ruck review my-feature-branch --mode local --base main
 # Compares my-feature-branch with main branch
 ```
 
 **Complete local review with all options:**
 ```bash
-node ./bin/run.js review --mode local --base main --llm claude --output html
+ruck review --mode local --base main --llm claude --output html
 # Generates HTML report comparing current branch with main using Claude
 ```
 
 **Local review with CLI output:**
 ```bash
-node ./bin/run.js review my-feature --mode local --llm gemini --output cli
+ruck review my-feature --mode local --llm gemini --output cli
 # Shows linter-style output in console
 ```
 
@@ -159,25 +181,25 @@ node ./bin/run.js review my-feature --mode local --llm gemini --output cli
 
 **Interactive GitLab review:**
 ```bash
-npm start review --mode gitlab
+ruck review --mode gitlab
 # Prompts for GitLab MR URL, LLM, and output format
 ```
 
 **Direct GitLab MR URL:**
 ```bash
-npm start review https://gitlab.example.com/project/repo/-/merge_requests/123 --mode gitlab
+ruck review https://gitlab.example.com/project/repo/-/merge_requests/123 --mode gitlab
 # Prompts for LLM and output format
 ```
 
 **Complete GitLab review with all options:**
 ```bash
-npm start review https://gitlab.example.com/project/repo/-/merge_requests/123 --mode gitlab --llm claude --output gitlab
+ruck review https://gitlab.example.com/project/repo/-/merge_requests/123 --mode gitlab --llm claude --output gitlab
 # Posts comments directly to GitLab MR
 ```
 
 **Generate HTML report from GitLab MR:**
 ```bash
-npm start review <gitlab-url> --mode gitlab --llm openai --output html
+ruck review <gitlab-url> --mode gitlab --llm openai --output html
 # Downloads MR data and generates offline HTML report
 ```
 
@@ -185,40 +207,40 @@ npm start review <gitlab-url> --mode gitlab --llm openai --output html
 
 **HTML Report (recommended for local reviews):**
 ```bash
-npm start review --mode local --output html
+ruck review --mode local --output html
 # Generates beautiful standalone HTML file: code-review-[timestamp].html
 ```
 
 **CLI Output (great for CI/CD):**
 ```bash
-npm start review --mode local --output cli
+ruck review --mode local --output cli
 # Shows ESLint-style output: file:line label: message
 ```
 
 **GitLab Posting (GitLab mode only):**
 ```bash
-npm start review <gitlab-url> --mode gitlab --output gitlab
+ruck review <gitlab-url> --mode gitlab --output gitlab
 # Posts line-specific comments and summary to the MR
 ```
 
 #### 5. LLM Provider Examples
 ```bash
 # Use Claude (recommended)
-npm start review --mode local --llm claude
+ruck review --mode local --llm claude
 
 # Use Gemini
-npm start review --mode local --llm gemini
+ruck review --mode local --llm gemini
 
 # Use OpenAI
-npm start review --mode local --llm openai
+ruck review --mode local --llm openai
 
 # Use local Ollama
-npm start review --mode local --llm ollama
+ruck review --mode local --llm ollama
 ```
 
 #### 6. Check Available Providers
 ```bash
-npm start list-llms
+ruck list-llms
 # Output:
 # Available LLM providers:
 #   - claude

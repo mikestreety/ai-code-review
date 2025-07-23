@@ -2,36 +2,38 @@
  * Environment configuration utilities for reading default and force settings
  */
 
+import { getConfig } from './config-loader.js';
+
 export function getDefaultReviewMode() {
-	return process.env.DEFAULT_REVIEW_MODE || 'local';
+	return getConfig('DEFAULT_REVIEW_MODE', 'local');
 }
 
 export function getForceReviewMode() {
-	return process.env.FORCE_REVIEW_MODE || null;
+	return getConfig('FORCE_REVIEW_MODE');
 }
 
 export function getDefaultLlmProvider() {
-	return process.env.DEFAULT_LLM_PROVIDER || null;
+	return getConfig('DEFAULT_LLM_PROVIDER');
 }
 
 export function getForceLlmProvider() {
-	return process.env.FORCE_LLM_PROVIDER || null;
+	return getConfig('FORCE_LLM_PROVIDER');
 }
 
 export function getDefaultOutputFormat() {
-	return process.env.DEFAULT_OUTPUT_FORMAT || 'gitlab';
+	return getConfig('DEFAULT_OUTPUT_FORMAT', 'gitlab');
 }
 
 export function getForceOutputFormat() {
-	return process.env.FORCE_OUTPUT_FORMAT || null;
+	return getConfig('FORCE_OUTPUT_FORMAT');
 }
 
 export function getDefaultLocalOutputFormat() {
-	return process.env.DEFAULT_LOCAL_OUTPUT_FORMAT || 'html';
+	return getConfig('DEFAULT_LOCAL_OUTPUT_FORMAT', 'html');
 }
 
 export function getForceLocalOutputFormat() {
-	return process.env.FORCE_LOCAL_OUTPUT_FORMAT || null;
+	return getConfig('FORCE_LOCAL_OUTPUT_FORMAT');
 }
 
 /**

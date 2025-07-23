@@ -2,7 +2,7 @@
 
 ## Project Configuration for Feature Development
 
-This document establishes the mandatory workflow for all feature requests and improvements to the GitLab MR Reviewer project.
+This document establishes the mandatory workflow for all feature requests and improvements to the Ruck project.
 
 ## Required Workflow for Every Feature Request
 
@@ -30,8 +30,8 @@ This document establishes the mandatory workflow for all feature requests and im
 
 ### 4. Self-Testing Requirement
 - **MANDATORY**: Test the implemented feature using the tool itself
-- Run the GitLab MR Reviewer on its own codebase with the new changes
-- Command to use: `node ./bin/run.js review -m local -l [claude|gemini] -o [html|cli] -b main`
+- Run Ruck on its own codebase with the new changes
+- Command to use: `ruck review -m local -l [claude|gemini] -o [html|cli] -b main`
 - Generate both HTML and CLI outputs to verify functionality
 
 ### 5. Feedback Analysis & Implementation
@@ -63,25 +63,25 @@ This document establishes the mandatory workflow for all feature requests and im
 ### Local Review (Required)
 ```bash
 # HTML output test
-node ./bin/run.js review -m local -l claude -o html -b main
+ruck review -m local -l claude -o html -b main
 
 # CLI output test  
-node ./bin/run.js review -m local -l gemini -o cli -b main
+ruck review -m local -l gemini -o cli -b main
 ```
 
 ### Interactive Mode Test
 ```bash
 # Test prompts and user interaction
-node ./bin/run.js
+ruck
 ```
 
 ### Command Verification
 ```bash
 # Test all commands work
-node ./bin/run.js --help
-node ./bin/run.js review --help
-node ./bin/run.js list-llms
-node ./bin/run.js setup
+ruck --help
+ruck review --help
+ruck list-llms
+ruck setup
 ```
 
 ## Compliance Requirements
@@ -127,4 +127,4 @@ This workflow is **MANDATORY** for all feature development. Any deviation from t
 
 ---
 
-**Note**: This configuration ensures high code quality, thorough testing, consistent development practices, and comprehensive application understanding for the GitLab MR Reviewer project.
+**Note**: This configuration ensures high code quality, thorough testing, consistent development practices, and comprehensive application understanding for the Ruck project.

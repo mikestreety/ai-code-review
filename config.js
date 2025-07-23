@@ -1,10 +1,12 @@
+import { getConfig } from './services/config-loader.js';
+
 const TIMEOUT_5_MINUTES = 5 * 60 * 1000,
 	TIMEOUT_10_MINUTES = 10 * 60 * 1000,
 	MAX_BUFFER_10MB = 10 * 1024 * 1024,
 
 	config = {
 		gitlab: {
-			privateToken: process.env.GITLAB_PRIVATE_TOKEN,
+			privateToken: getConfig('GITLAB_PRIVATE_TOKEN'),
 		},
 		llms: {
 			gemini: {
