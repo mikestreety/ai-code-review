@@ -7,6 +7,16 @@
   "bin": {
     "ruck": "./bin/run.js"
   },
+  "files": [
+    "bin/",
+    "src/",
+    "services/",
+    "api/",
+    "utils/",
+    "prompts/",
+    "config.js",
+    "README.md"
+  ],
   "scripts": {
     "start": "node ./bin/run.js",
     "lint": "npm run eslint:fix",
