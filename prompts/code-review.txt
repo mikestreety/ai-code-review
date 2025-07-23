@@ -39,12 +39,13 @@ All feedback must follow the Conventional Comments format: `<label> [decorations
 - **todo**: Small, necessary changes before acceptance
 - **question**: Genuine questions requiring answers
 - **nitpick**: Minor, unimportant but potentially helpful changes (always `(non-blocking)`)
-- **praise**: Highlight positive aspects
 - **chore**: Simple tasks like linting or formatting
 - **typo**: Spelling or grammar corrections
 - **thought**: Non-blocking ideas or observations worth sharing
 - **note**: Important information or clarifications (non-blocking)
 - **polish**: Quality improvements that enhance but aren't critical
+
+**NOTE:** Do not include praise comments as they add noise to the merge request without providing actionable feedback.
 
 **Decorations:**
 - **(blocking)**: Must be resolved before acceptance
@@ -57,7 +58,6 @@ All feedback must follow the Conventional Comments format: `<label> [decorations
 - `todo: Add error handling for this API call.`
 - `question: Should this be async to avoid blocking the main thread?`
 - `nitpick (non-blocking): Consider renaming this variable to be more descriptive.`
-- `praise: Excellent use of the strategy pattern here!`
 - `typo: "recieve" should be "receive".`
 - `thought: This approach might not scale well with large datasets.`
 - `note: This function is called from multiple places, be careful with changes.`
@@ -86,11 +86,6 @@ Example JSON output:
       "file": "src/utils.js", 
       "line": 15,
       "comment": "suggestion: Extract this validation logic into a separate function for reusability."
-    },
-    {
-      "file": "src/handler.js",
-      "line": 28,
-      "comment": "praise: Great error handling implementation with proper logging."
     },
     {
       "file": "README.md",

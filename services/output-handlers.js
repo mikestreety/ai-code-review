@@ -38,7 +38,6 @@ export function generateHtmlReport(parsedReview, llmChoice, fileContext = null) 
         .comment.issue { border-left-color: #ef4444; }
         .comment.suggestion { border-left-color: #3b82f6; }
         .comment.todo { border-left-color: #f59e0b; }
-        .comment.praise { border-left-color: #10b981; }
         .comment.question { border-left-color: #8b5cf6; }
         .comment.nitpick { border-left-color: #6b7280; }
         .comment.hidden { display: none; }
@@ -51,7 +50,6 @@ export function generateHtmlReport(parsedReview, llmChoice, fileContext = null) 
         .label.issue { background: #fef2f2; color: #dc2626; }
         .label.suggestion { background: #eff6ff; color: #2563eb; }
         .label.todo { background: #fffbeb; color: #d97706; }
-        .label.praise { background: #ecfdf5; color: #059669; }
         .label.question { background: #f3f4f6; color: #7c3aed; }
         .label.nitpick { background: #f9fafb; color: #4b5563; }
         .stats { display: flex; gap: 16px; margin-top: 16px; }
@@ -87,10 +85,6 @@ export function generateHtmlReport(parsedReview, llmChoice, fileContext = null) 
                 <div class="stat ${stats.todoCount > 0 ? 'active' : 'inactive'}" data-filter="todo" onclick="toggleFilter('todo')">
                     <div class="stat-number">${stats.todoCount}</div>
                     <div class="stat-label">TODOs</div>
-                </div>
-                <div class="stat ${stats.praiseCount > 0 ? 'active' : 'inactive'}" data-filter="praise" onclick="toggleFilter('praise')">
-                    <div class="stat-number">${stats.praiseCount}</div>
-                    <div class="stat-label">Praise</div>
                 </div>
                 <div class="stat ${stats.questionCount > 0 ? 'active' : 'inactive'}" data-filter="question" onclick="toggleFilter('question')">
                     <div class="stat-number">${stats.questionCount}</div>
@@ -172,7 +166,6 @@ export function generateHtmlReport(parsedReview, llmChoice, fileContext = null) 
         const filterState = {
             issue: true,
             suggestion: true,
-            praise: true,
             todo: true,
             question: true,
             nitpick: true,
@@ -253,8 +246,6 @@ export function outputCliFormat(parsedReview, llmChoice) {
 			}
 			case 'todo': { return chalk.yellow;
 			}
-			case 'praise': { return chalk.green;
-			}
 			case 'question': { return chalk.magenta;
 			}
 			case 'nitpick': { return chalk.gray;
@@ -293,8 +284,8 @@ export function outputCliFormat(parsedReview, llmChoice) {
 		console.log('');
 	}
 
-	const problemText = stats.blockingIssues > 0 ?
-		chalk.red(`✖ ${stats.totalComments} problems (${stats.blockingIssues} errors, ${stats.suggestions} warnings)`) :
+	const problemText = stats.issueCount > 0 ?
+		chalk.red(`✖ ${stats.totalComments} problems (${stats.issueCount} errors, ${stats.suggestions} warnings)`) :
 		chalk.yellow(`⚠ ${stats.totalComments} warnings`);
 
 	console.log(problemText);
