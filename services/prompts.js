@@ -11,33 +11,33 @@ import config from '../config.js';
 
 export async function promptForReviewMode() {
 	const defaultMode = getDefaultReviewMode();
-	
+
 	// If no GitLab token is configured, skip the prompt and return 'local'
 	if (!config.gitlab.privateToken) {
 		return 'local';
 	}
-	
+
 	// Build choices array - both local and gitlab are available
 	const choices = [
-		{
-			name: 'local - Review local branch changes (compare current branch with base)',
-			value: 'local',
-		},
-		{
-			name: 'gitlab - Review GitLab Merge Request (requires MR URL)',
-			value: 'gitlab',
-		},
-	];
+			{
+				name: 'local - Review local branch changes (compare current branch with base)',
+				value: 'local',
+			},
+			{
+				name: 'gitlab - Review GitLab Merge Request (requires MR URL)',
+				value: 'gitlab',
+			},
+		],
 
-	const { reviewMode } = await inquirer.prompt([
-		{
-			type: 'list',
-			name: 'reviewMode',
-			message: 'Choose review mode:',
-			choices,
-			default: defaultMode,
-		},
-	]);
+		{ reviewMode } = await inquirer.prompt([
+			{
+				type: 'list',
+				name: 'reviewMode',
+				message: 'Choose review mode:',
+				choices,
+				default: defaultMode,
+			},
+		]);
 
 	return reviewMode;
 }

@@ -215,9 +215,14 @@ function findExactCodeMatch(codeSnippet, fileLines) {
 		// Handle numeric snippets by looking for exact number matches
 		if (/^\d+$/.test(codeSnippet)) {
 			// For pure numbers, look for exact matches in context (== or != comparisons)
-			if (line.includes(`== ${codeSnippet}`) || line.includes(`!= ${codeSnippet}`) ||
-			  line.includes(`< ${codeSnippet}`) || line.includes(`> ${codeSnippet}`) ||
-			  line.includes(`${codeSnippet})`) || line.includes(`(${codeSnippet}`)) {
+			if (
+				line.includes(`== ${codeSnippet}`) ||
+				line.includes(`!= ${codeSnippet}`) ||
+				line.includes(`< ${codeSnippet}`) ||
+				line.includes(`> ${codeSnippet}`) ||
+				line.includes(`${codeSnippet})`) ||
+				line.includes(`(${codeSnippet}`)
+			) {
 				return {
 					lineNumber: index + 1,
 					matchedText: line.trim(),

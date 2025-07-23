@@ -4,7 +4,7 @@
  */
 
 import { readFileSync, existsSync } from 'node:fs';
-import { join } from 'node:path';
+import path from 'node:path';
 import { homedir } from 'node:os';
 import dotenv from 'dotenv';
 
@@ -18,7 +18,7 @@ export function loadConfig() {
 	const config = {},
 
 		// Load from user's home .ruckconfig file first (lowest precedence)
-		ruckConfigPath = join(homedir(), '.ruckconfig');
+		ruckConfigPath = path.join(homedir(), '.ruckconfig');
 	if (existsSync(ruckConfigPath)) {
 		try {
 			const ruckConfigContent = readFileSync(ruckConfigPath, 'utf8'),

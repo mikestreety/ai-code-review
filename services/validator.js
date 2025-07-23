@@ -28,7 +28,7 @@ export function validateReviewMode(mode) {
 	if (!validModes.includes(mode)) {
 		throw new Error(`Invalid review mode "${mode}". Valid options: ${validModes.join(', ')}`);
 	}
-	
+
 	// Check if GitLab mode is selected but no token is configured
 	if (mode === 'gitlab' && !process.env.GITLAB_PRIVATE_TOKEN) {
 		throw new Error('GitLab mode requires GITLAB_PRIVATE_TOKEN to be set. Please configure your GitLab token or use local mode.');

@@ -1,6 +1,6 @@
 {
   "name": "@mikestreety/ruck",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Automated GitLab MR code reviews using Gemini or Claude",
   "main": "./bin/run.js",
   "type": "module",
