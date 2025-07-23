@@ -2,6 +2,7 @@ import { writeFileSync } from 'node:fs';
 import { postCommentToMergeRequest, postLineCommentToMergeRequest } from '../api/gitlab.js';
 import { getReviewStatistics } from './review-processor.js';
 import { extractCodeSnippet, parseFileContents, getFileExtension, getLanguageFromExtension } from './code-snippet-extractor.js';
+import chalk from 'chalk';
 
 function escapeHtml(text) {
 	return text
@@ -234,24 +235,62 @@ export function generateHtmlReport(parsedReview, llmChoice, fileContext = null) 
 export function outputCliFormat(parsedReview, llmChoice) {
 	const stats = getReviewStatistics(parsedReview);
 
-	console.log(`\n${llmChoice.toUpperCase()} Code Review Results:\n`);
+	// Group comments by file for ESLint-style output
+	const commentsByFile = new Map();
+	for (const comment of parsedReview.comments) {
+		if (!commentsByFile.has(comment.file)) {
+			commentsByFile.set(comment.file, []);
+		}
+		commentsByFile.get(comment.file).push(comment);
+	}
+
+	// Color mapping for different comment types (matching HTML colors)
+	const getCommentColor = (label) => {
+		switch (label.toLowerCase()) {
+			case 'issue': return chalk.red;
+			case 'suggestion': return chalk.blue;
+			case 'todo': return chalk.yellow;
+			case 'praise': return chalk.green;
+			case 'question': return chalk.magenta;
+			case 'nitpick': return chalk.gray;
+			case 'note': return chalk.cyan;
+			default: return chalk.white;
+		}
+	};
+
+	console.log(`\n${chalk.bold(llmChoice.toUpperCase())} Code Review Results:\n`);
 	console.log(parsedReview.summary);
-	console.log('\nIssues found:\n');
+	console.log('');
 
 	if (parsedReview.comments.length === 0) {
-		console.log('  No issues found.');
+		console.log(chalk.green('✓ No issues found.'));
 		return;
 	}
 
-	for (const comment of parsedReview.comments) {
-		const labelMatch = comment.comment.match(/^(\w+)(\s*\([^)]+\))?:/),
-			label = labelMatch ? labelMatch[0] : 'note:',
-			commentText = comment.comment.replace(/^(\w+)(\s*\([^)]+\))?:\s*/, '');
-
-		console.log(`  ${comment.file}:${comment.line} ${label} ${commentText}`);
+	// Output in ESLint style: filename followed by line-by-line issues
+	for (const [fileName, comments] of commentsByFile) {
+		console.log(chalk.underline(fileName));
+		
+		// Sort comments by line number
+		comments.sort((a, b) => (a.line || 0) - (b.line || 0));
+		
+		for (const comment of comments) {
+			const labelMatch = comment.comment.match(/^(\w+)(\s*\([^)]+\))?:/);
+			const label = labelMatch ? labelMatch[1] : 'note';
+			const commentText = comment.comment.replace(/^(\w+)(\s*\([^)]+\))?:\s*/, '');
+			const colorFn = getCommentColor(label);
+			
+			console.log(`  ${chalk.dim(comment.line || '?')}  ${colorFn(label)}  ${commentText}`);
+		}
+		console.log('');
 	}
 
-	console.log(`\nSummary: ${stats.totalComments} comments (${stats.blockingIssues} blocking, ${stats.suggestions} suggestions)\n`);
+	const problemText = stats.blockingIssues > 0 ? 
+		chalk.red(`✖ ${stats.totalComments} problems (${stats.blockingIssues} errors, ${stats.suggestions} warnings)`) :
+		chalk.yellow(`⚠ ${stats.totalComments} warnings`);
+	
+	console.log(problemText);
+	console.log('');
 }
 
 export async function outputToGitLab(parsedReview, llmChoice, gitlabUrl, projectId, mergeRequestIid, baseSha, startSha, headSha) {
