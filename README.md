@@ -34,10 +34,10 @@ ruck --help
 ### NPX Usage (No Installation)
 
 ```bash
-# Run directly from GitHub
-npx https://github.com/mikestreety/ruck
+# Run directly from GitHub (works immediately)
+npx github:mikestreety/ruck
 
-# Or run from npm registry
+# Or run from npm registry (after package is published)
 npx @mikestreety/ruck
 ```
 
@@ -449,6 +449,26 @@ For troubleshooting, check the console output which includes:
 - Git operations status
 - API call responses
 - File processing progress
+
+## Publishing
+
+This package is automatically published to npm when a new release is created on GitHub.
+
+### For Maintainers
+
+1. **Setup NPM Token**: Add your npm token to GitHub repository secrets as `NPM_TOKEN`
+2. **Create Release**: Create a new release on GitHub with a version tag (e.g., `v1.0.1`)
+3. **Automatic Publishing**: The GitHub Action will automatically publish to npm
+
+### Manual Publishing (Alternative)
+
+```bash
+# Login to npm (if not already)
+npm login
+
+# Publish with 2FA
+npm publish --access public --otp=123456
+```
 
 ## Contributing
 
