@@ -120,8 +120,8 @@ export function generateHtmlReport(parsedReview, llmChoice, fileContext = null) 
 
 					// Get code snippet if file content is available
 					fileContent = fileContents.get(comment.file);
-				let codeSnippetHtml = '';
-				let snippet = null;
+				let codeSnippetHtml = '',
+					snippet = null;
 
 				if (fileContent && comment.line && comment.line > 0) {
 					snippet = extractCodeSnippet(fileContent, comment.line, 2);
@@ -131,7 +131,7 @@ export function generateHtmlReport(parsedReview, llmChoice, fileContext = null) 
 
 						let adjustmentInfo = '';
 						if (snippet.adjusted && snippet.adjustmentReason) {
-							const confidenceText = snippet.confidence >= 0.8 ? 'high' : snippet.confidence >= 0.6 ? 'medium' : 'low';
+							const confidenceText = snippet.confidence >= 0.8 ? 'high' : (snippet.confidence >= 0.6 ? 'medium' : 'low');
 							adjustmentInfo = `<span class="line-adjustment" title="Original line ${snippet.originalTargetLine} → Line ${snippet.targetLine}. ${snippet.adjustmentReason}. Confidence: ${confidenceText}">⚠️ Line adjusted: ${snippet.adjustmentReason}</span>`;
 						}
 

@@ -47,8 +47,8 @@ export async function performLocalReview(currentBranch, baseBranch, llmChoice, o
 		console.log(`\n🔍 Comparing ${branchInfo.currentBranch} (${branchInfo.currentSha.slice(0, 8)}) with ${branchInfo.baseBranch} (${branchInfo.baseSha.slice(0, 8)})`);
 
 		// Get diff and changed files
-		const diffSpinner = ora('Getting local changes...').start();
-		const diff = await getBranchDiff(currentBranch, baseBranch),
+		const diffSpinner = ora('Getting local changes...').start(),
+			diff = await getBranchDiff(currentBranch, baseBranch),
 			changedFiles = await getChangedFilesLocal(currentBranch, baseBranch);
 		diffSpinner.succeed(`Found ${changedFiles.length} changed files, diff size: ${diff.length} characters`);
 
@@ -58,19 +58,19 @@ export async function performLocalReview(currentBranch, baseBranch, llmChoice, o
 		}
 
 		// Read file context
-		const contextSpinner = ora('Reading changed files for context...').start();
-		const fileContext = await readLocalFilesForContext(changedFiles);
+		const contextSpinner = ora('Reading changed files for context...').start(),
+			fileContext = await readLocalFilesForContext(changedFiles);
 		contextSpinner.succeed(`File context prepared, total size: ${fileContext.length} characters`);
 
 		// Run code review
-		const reviewSpinner = ora(`Running ${llmChoice.toUpperCase()} code review...`).start();
-		const startTime = Date.now(),
+		const reviewSpinner = ora(`Running ${llmChoice.toUpperCase()} code review...`).start(),
+			startTime = Date.now(),
 			review = await runCodeReview(llmChoice, diff, fileContext),
 			endTime = Date.now();
 		reviewSpinner.succeed(`${llmChoice.toUpperCase()} code review completed in ${(endTime - startTime) / 1000}s`);
 
-		const parsedReview = parseReviewResponse(review, llmChoice);
-		const validatedReview = validateAndFixLineNumbers(parsedReview, fileContext);
+		const parsedReview = parseReviewResponse(review, llmChoice),
+			validatedReview = validateAndFixLineNumbers(parsedReview, fileContext);
 
 		// Handle output (no GitLab params for local)
 		await handleOutput(outputFormat, validatedReview, llmChoice, null, fileContext);
@@ -101,27 +101,27 @@ export async function performGitLabReview(mrUrl, llmChoice, outputFormat = 'gitl
 
 		// Clone and analyze repository
 		temporaryDirectory = await setupRepository(mrData.cloneUrl, mrData.sourceBranch);
-		const analysisData = await analyzeRepository(gitlabUrl, projectId, mergeRequestIid, temporaryDirectory);
+		const analysisData = await analyzeRepository(gitlabUrl, projectId, mergeRequestIid, temporaryDirectory),
 
-		// Run code review
-		const reviewSpinner = ora(`Running ${llmChoice.toUpperCase()} code review...`).start();
-		const startTime = Date.now(),
+			// Run code review
+			reviewSpinner = ora(`Running ${llmChoice.toUpperCase()} code review...`).start(),
+			startTime = Date.now(),
 			review = await runCodeReview(llmChoice, analysisData.diff, analysisData.fileContext),
 			endTime = Date.now();
 		reviewSpinner.succeed(`${llmChoice.toUpperCase()} code review completed in ${(endTime - startTime) / 1000}s`);
 
-		const parsedReview = parseReviewResponse(review, llmChoice);
-		const validatedReview = validateAndFixLineNumbers(parsedReview, analysisData.fileContext);
+		const parsedReview = parseReviewResponse(review, llmChoice),
+			validatedReview = validateAndFixLineNumbers(parsedReview, analysisData.fileContext),
 
-		// Handle output
-		const gitlabParameters = {
-			gitlabUrl,
-			projectId,
-			mergeRequestIid,
-			baseSha: mrData.baseSha,
-			startSha: mrData.startSha,
-			headSha: mrData.headSha,
-		};
+			// Handle output
+			gitlabParameters = {
+				gitlabUrl,
+				projectId,
+				mergeRequestIid,
+				baseSha: mrData.baseSha,
+				startSha: mrData.startSha,
+				headSha: mrData.headSha,
+			};
 
 		await handleOutput(outputFormat, validatedReview, llmChoice, gitlabParameters, analysisData.fileContext);
 	} catch (error) {
@@ -135,8 +135,8 @@ export async function performGitLabReview(mrUrl, llmChoice, outputFormat = 'gitl
 }
 
 async function checkUnresolvedDiscussions(gitlabUrl, projectId, mergeRequestIid) {
-	const discussionSpinner = ora('Checking for unresolved discussions...').start();
-	const unresolvedDiscussions = await getUnresolvedDiscussions(gitlabUrl, projectId, mergeRequestIid);
+	const discussionSpinner = ora('Checking for unresolved discussions...').start(),
+		unresolvedDiscussions = await getUnresolvedDiscussions(gitlabUrl, projectId, mergeRequestIid);
 
 	if (unresolvedDiscussions.length > 0) {
 		discussionSpinner.fail('Found unresolved discussions');
@@ -159,16 +159,16 @@ async function checkUnresolvedDiscussions(gitlabUrl, projectId, mergeRequestIid)
 }
 
 async function setupMergeRequestData(gitlabUrl, projectId, mergeRequestIid) {
-	const mrSpinner = ora(`Fetching details for MR !${mergeRequestIid} in project ${projectId}...`).start();
+	const mrSpinner = ora(`Fetching details for MR !${mergeRequestIid} in project ${projectId}...`).start(),
 
-	const mrDetails = await getMergeRequestDetails(gitlabUrl, projectId, mergeRequestIid),
+		mrDetails = await getMergeRequestDetails(gitlabUrl, projectId, mergeRequestIid),
 		sourceBranch = mrDetails.source_branch,
 		baseSha = mrDetails.diff_refs.base_sha,
 		startSha = mrDetails.diff_refs.start_sha,
-		headSha = mrDetails.diff_refs.head_sha;
+		headSha = mrDetails.diff_refs.head_sha,
 
-	const cloneUrl = await getProjectCloneUrl(gitlabUrl, projectId);
-	
+		cloneUrl = await getProjectCloneUrl(gitlabUrl, projectId);
+
 	mrSpinner.succeed(`Found MR: "${mrDetails.title}" on branch "${sourceBranch}"`);
 	console.log(`📋 SHA references - base: ${baseSha.slice(0, 8)}, start: ${startSha.slice(0, 8)}, head: ${headSha.slice(0, 8)}`);
 
@@ -194,13 +194,13 @@ async function setupRepository(cloneUrl, sourceBranch) {
 }
 
 async function analyzeRepository(gitlabUrl, projectId, mergeRequestIid, temporaryDirectory) {
-	const diffSpinner = ora('Fetching MR diff and changed files...').start();
-	const diff = await getMergeRequestDiff(gitlabUrl, projectId, mergeRequestIid),
+	const diffSpinner = ora('Fetching MR diff and changed files...').start(),
+		diff = await getMergeRequestDiff(gitlabUrl, projectId, mergeRequestIid),
 		changedFiles = await getChangedFiles(gitlabUrl, projectId, mergeRequestIid);
 	diffSpinner.succeed(`Found ${changedFiles.length} changed files, diff size: ${diff.length} characters`);
 
-	const contextSpinner = ora('Reading changed files for context...').start();
-	const fileContext = await readFilesForContext(changedFiles, temporaryDirectory);
+	const contextSpinner = ora('Reading changed files for context...').start(),
+		fileContext = await readFilesForContext(changedFiles, temporaryDirectory);
 	contextSpinner.succeed(`File context prepared, total size: ${fileContext.length} characters`);
 
 	return {

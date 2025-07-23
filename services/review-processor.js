@@ -65,19 +65,19 @@ export function validateAndFixLineNumbers(parsedReview, fileContext) {
 		return parsedReview;
 	}
 
-	const fileContents = parseFileContents(fileContext);
-	const validatedComments = [];
+	const fileContents = parseFileContents(fileContext),
+		validatedComments = [];
 
 	for (const comment of parsedReview.comments) {
 		const fileContent = fileContents.get(comment.file);
-		
+
 		if (!fileContent) {
 			console.warn(`Warning: File '${comment.file}' not found in context. Skipping comment.`);
 			continue;
 		}
 
-		const fileLines = fileContent.split('\n');
-		const maxLineNumber = fileLines.length;
+		const fileLines = fileContent.split('\n'),
+			maxLineNumber = fileLines.length;
 
 		// Validate line number
 		if (!comment.line || comment.line < 1 || comment.line > maxLineNumber) {
@@ -98,6 +98,6 @@ export function validateAndFixLineNumbers(parsedReview, fileContext) {
 
 	return {
 		...parsedReview,
-		comments: validatedComments
+		comments: validatedComments,
 	};
 }

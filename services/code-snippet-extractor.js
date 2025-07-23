@@ -4,45 +4,31 @@
  */
 
 // Cache for language patterns and file analysis
-const patternCache = new Map();
-const fileAnalysisCache = new Map();
-const MAX_CACHE_SIZE = 100;
-
-// Cache cleanup to prevent memory leaks
-function cleanupCaches() {
-	if (patternCache.size > MAX_CACHE_SIZE) {
-		const keysToDelete = Array.from(patternCache.keys()).slice(0, patternCache.size - MAX_CACHE_SIZE);
-		keysToDelete.forEach(key => patternCache.delete(key));
-	}
-
-	if (fileAnalysisCache.size > MAX_CACHE_SIZE) {
-		const keysToDelete = Array.from(fileAnalysisCache.keys()).slice(0, fileAnalysisCache.size - MAX_CACHE_SIZE);
-		keysToDelete.forEach(key => fileAnalysisCache.delete(key));
-	}
-}
+const patternCache = new Map(),
+	fileAnalysisCache = new Map();
 
 export function extractCodeSnippet(fileContent, lineNumber, contextLines = 3, fileName = '') {
 	if (!fileContent || !lineNumber || lineNumber < 1 || !Number.isInteger(lineNumber) || contextLines < 0) {
 		return null;
 	}
 
-	const lines = fileContent.split('\n');
-	let targetLineIndex = lineNumber - 1; // Convert to 0-based index
+	const lines = fileContent.split('\n'),
+		targetLineIndex = lineNumber - 1; // Convert to 0-based index
 
 	if (targetLineIndex >= lines.length) {
 		return null;
 	}
 
 	// Use intelligent line matching to find the most relevant code
-	const bestMatch = findBestCodeMatch(lines, targetLineIndex, 5, fileName);
-	const adjustedLineNumber = bestMatch.lineIndex + 1;
-	const wasAdjusted = bestMatch.lineIndex !== targetLineIndex;
+	const bestMatch = findBestCodeMatch(lines, targetLineIndex, 5, fileName),
+		adjustedLineNumber = bestMatch.lineIndex + 1,
+		wasAdjusted = bestMatch.lineIndex !== targetLineIndex,
 
-	// Calculate snippet bounds with intelligent context
-	const bounds = calculateSmartBounds(lines, bestMatch.lineIndex, contextLines);
+		// Calculate snippet bounds with intelligent context
+		bounds = calculateSmartBounds(lines, bestMatch.lineIndex, contextLines),
 
-	// Extract the snippet with context
-	const snippetLines = [];
+		// Extract the snippet with context
+		snippetLines = [];
 	for (let index = bounds.start; index <= bounds.end; index++) {
 		snippetLines.push({
 			lineNumber: index + 1,
@@ -78,7 +64,7 @@ function findBestCodeMatch(lines, originalIndex, searchRange = 5, fileName = '')
 		return {
 			lineIndex: originalIndex,
 			reason: null,
-			confidence: 1.0
+			confidence: 1,
 		};
 	}
 
@@ -104,7 +90,7 @@ function findBestCodeMatch(lines, originalIndex, searchRange = 5, fileName = '')
 	return {
 		lineIndex: originalIndex,
 		reason: 'No better match found',
-		confidence: 0.3
+		confidence: 0.3,
 	};
 }
 
@@ -113,38 +99,38 @@ function findBestCodeMatch(lines, originalIndex, searchRange = 5, fileName = '')
  * Uses intelligent pattern detection and caching for performance
  */
 function findPatternMatch(lines, originalIndex, searchRange, fileName = '') {
-	const start = Math.max(0, originalIndex - searchRange);
-	const end = Math.min(lines.length - 1, originalIndex + searchRange);
+	const start = Math.max(0, originalIndex - searchRange),
+		end = Math.min(lines.length - 1, originalIndex + searchRange),
 
-	// Get language-specific patterns with caching
-	const language = detectLanguageFromContent(lines, fileName);
-	const patterns = getLanguagePatterns(language, lines);
+		// Get language-specific patterns with caching
+		language = detectLanguageFromContent(lines, fileName),
+		patterns = getLanguagePatterns(language, lines);
 
 	if (!patterns || patterns.length === 0) {
 		return null;
 	}
 
 	// Search for pattern matches with distance weighting
-	let bestMatch = null;
-	let bestScore = 0;
+	let bestMatch = null,
+		bestScore = 0;
 
-	for (let i = start; i <= end; i++) {
-		const line = lines[i];
+	for (let index = start; index <= end; index++) {
+		const line = lines[index];
 		if (!line) continue;
 
 		for (const pattern of patterns) {
 			if (pattern.regex.test(line)) {
 				// Calculate score based on confidence and distance from original
-				const distance = Math.abs(i - originalIndex);
-				const distancePenalty = distance * 0.1;
-				const score = pattern.confidence - distancePenalty;
+				const distance = Math.abs(index - originalIndex),
+					distancePenalty = distance * 0.1,
+					score = pattern.confidence - distancePenalty;
 
 				if (score > bestScore) {
 					bestScore = score;
 					bestMatch = {
-						lineIndex: i,
+						lineIndex: index,
 						reason: pattern.reason,
-						confidence: Math.max(0.1, score)
+						confidence: Math.max(0.1, score),
 					};
 				}
 			}
@@ -168,10 +154,10 @@ function detectLanguageFromContent(lines, fileName = '') {
 
 	// First try file extension
 	if (fileName) {
-		const ext = getFileExtension(fileName);
-		const langFromExt = getLanguageFromExtension(ext);
-		if (langFromExt !== 'text') {
-			language = langFromExt;
+		const extension = getFileExtension(fileName),
+			langFromExtension = getLanguageFromExtension(extension);
+		if (langFromExtension !== 'text') {
+			language = langFromExtension;
 		}
 	}
 
@@ -189,21 +175,21 @@ function detectLanguageFromContent(lines, fileName = '') {
  * Detects language from syntax patterns in code
  */
 function detectLanguageFromSyntax(lines) {
-	const sampleLines = lines.slice(0, Math.min(50, lines.length)).join('\n');
+	const sampleLines = lines.slice(0, Math.min(50, lines.length)).join('\n'),
 
-	// Language indicators with confidence scores
-	const indicators = [
-		{ pattern: /\$[a-zA-Z_][\w]*/, language: 'php', weight: 3 },
-		{ pattern: /def\s+\w+\s*\(/, language: 'python', weight: 4 },
-		{ pattern: /import\s+\w+|from\s+\w+\s+import/, language: 'python', weight: 3 },
-		{ pattern: /function\s+\w+\s*\(|const\s+\w+\s*=|let\s+\w+\s*=/, language: 'javascript', weight: 3 },
-		{ pattern: /class\s+\w+\s*<|def\s+\w+|end\b/, language: 'ruby', weight: 4 },
-		{ pattern: /public\s+class|private\s+\w+|import\s+java/, language: 'java', weight: 4 },
-		{ pattern: /fn\s+\w+|let\s+mut|use\s+std::/, language: 'rust', weight: 4 },
-		{ pattern: /func\s+\w+|package\s+\w+|import\s+"/, language: 'go', weight: 4 },
-	];
+		// Language indicators with confidence scores
+		indicators = [
+			{ pattern: /\$[a-zA-Z_][\w]*/, language: 'php', weight: 3 },
+			{ pattern: /def\s+\w+\s*\(/, language: 'python', weight: 4 },
+			{ pattern: /import\s+\w+|from\s+\w+\s+import/, language: 'python', weight: 3 },
+			{ pattern: /function\s+\w+\s*\(|const\s+\w+\s*=|let\s+\w+\s*=/, language: 'javascript', weight: 3 },
+			{ pattern: /class\s+\w+\s*<|def\s+\w+|end\b/, language: 'ruby', weight: 4 },
+			{ pattern: /public\s+class|private\s+\w+|import\s+java/, language: 'java', weight: 4 },
+			{ pattern: /fn\s+\w+|let\s+mut|use\s+std::/, language: 'rust', weight: 4 },
+			{ pattern: /func\s+\w+|package\s+\w+|import\s+"/, language: 'go', weight: 4 },
+		],
 
-	let scores = {};
+		scores = {};
 
 	for (const { pattern, language, weight } of indicators) {
 		const matches = (sampleLines.match(pattern) || []).length;
@@ -211,8 +197,15 @@ function detectLanguageFromSyntax(lines) {
 	}
 
 	// Return language with highest score, or 'unknown'
-	const maxLang = Object.keys(scores).reduce((a, b) => scores[a] > scores[b] ? a : b, 'unknown');
-	return scores[maxLang] > 0 ? maxLang : 'unknown';
+	let maxLang = 'unknown',
+		maxScore = 0;
+	for (const lang of Object.keys(scores)) {
+		if (scores[lang] > maxScore) {
+			maxScore = scores[lang];
+			maxLang = lang;
+		}
+	}
+	return maxScore > 0 ? maxLang : 'unknown';
 }
 
 /**
@@ -235,8 +228,8 @@ function getLanguagePatterns(language, lines) {
  * Generates dynamic patterns based on language and content analysis
  */
 function generateLanguagePatterns(language, lines) {
-	const basePatterns = getBasePatterns(language);
-	const contentPatterns = analyzeContentForPatterns(lines, language);
+	const basePatterns = getBasePatterns(language),
+		contentPatterns = analyzeContentForPatterns(lines, language);
 
 	return [...basePatterns, ...contentPatterns];
 }
@@ -247,11 +240,11 @@ function generateLanguagePatterns(language, lines) {
 function getBasePatterns(language) {
 	const patterns = {
 		php: [
-			{ regex: /\$[a-zA-Z_][\w]*\s*=.*['\"].*['\"]/, reason: 'Variable assignment', confidence: 0.7 },
+			{ regex: /\$[a-zA-Z_][\w]*\s*=.*['"].*['"]/, reason: 'Variable assignment', confidence: 0.7 },
 			{ regex: /function\s+\w+\s*\(/, reason: 'Function definition', confidence: 0.8 },
 			{ regex: /class\s+\w+/, reason: 'Class definition', confidence: 0.8 },
 			{ regex: /if\s*\(.*\$/, reason: 'Conditional with variable', confidence: 0.7 },
-			{ regex: /\-\>\w+\s*\(/, reason: 'Method call', confidence: 0.7 },
+			{ regex: /->\w+\s*\(/, reason: 'Method call', confidence: 0.7 },
 		],
 		python: [
 			{ regex: /def\s+\w+\s*\(/, reason: 'Function definition', confidence: 0.8 },
@@ -272,7 +265,7 @@ function getBasePatterns(language) {
 			{ regex: /class\s+\w+/, reason: 'Class definition', confidence: 0.8 },
 			{ regex: /if\s+.*/, reason: 'Conditional statement', confidence: 0.7 },
 			{ regex: /\w+\.each\s+do|\w+\.map\s+do/, reason: 'Iterator block', confidence: 0.7 },
-			{ regex: /require\s+['\"]/, reason: 'Require statement', confidence: 0.6 },
+			{ regex: /require\s+['"]/, reason: 'Require statement', confidence: 0.6 },
 		],
 		java: [
 			{ regex: /public\s+class\s+\w+|private\s+class\s+\w+/, reason: 'Class definition', confidence: 0.8 },
@@ -290,18 +283,18 @@ function getBasePatterns(language) {
  * Analyzes file content to discover project-specific patterns
  */
 function analyzeContentForPatterns(lines, language) {
-	const patterns = [];
-	const functionNames = new Set();
-	const classNames = new Set();
-	const variablePatterns = new Set();
+	const patterns = [],
+		functionNames = new Set(),
+		classNames = new Set(),
+		variablePatterns = new Set();
 
 	for (const line of lines.slice(0, Math.min(100, lines.length))) {
 		if (!line || line.trim().length === 0) continue;
 
 		// Extract function names
-		const funcMatch = line.match(/(?:function|def|fn)\s+(\w+)/i);
-		if (funcMatch) {
-			functionNames.add(funcMatch[1]);
+		const functionMatch = line.match(/(?:function|def|fn)\s+(\w+)/i);
+		if (functionMatch) {
+			functionNames.add(functionMatch[1]);
 		}
 
 		// Extract class names
@@ -312,29 +305,29 @@ function analyzeContentForPatterns(lines, language) {
 
 		// Extract variable patterns based on language
 		if (language === 'php') {
-			const varMatch = line.match(/\$(\w+)/g);
-			if (varMatch) {
-				varMatch.forEach(v => variablePatterns.add(v));
+			const variableMatch = line.match(/\$(\w+)/g);
+			if (variableMatch) {
+				for (const v of variableMatch) variablePatterns.add(v);
 			}
 		}
 	}
 
 	// Generate patterns from discovered elements
-	functionNames.forEach(name => {
+	for (const name of functionNames) {
 		patterns.push({
 			regex: new RegExp(`\\b${name}\\s*\\(`, 'i'),
 			reason: `Call to function '${name}'`,
-			confidence: 0.75
+			confidence: 0.75,
 		});
-	});
+	}
 
-	classNames.forEach(name => {
+	for (const name of classNames) {
 		patterns.push({
 			regex: new RegExp(`\\b${name}\\b`, 'i'),
 			reason: `Reference to class '${name}'`,
-			confidence: 0.7
+			confidence: 0.7,
 		});
-	});
+	}
 
 	return patterns;
 }
@@ -343,27 +336,27 @@ function analyzeContentForPatterns(lines, language) {
  * Finds the nearest line with significant code content
  */
 function findNearestSignificantCode(lines, originalIndex, searchRange) {
-	const start = Math.max(0, originalIndex - searchRange);
-	const end = Math.min(lines.length - 1, originalIndex + searchRange);
+	const start = Math.max(0, originalIndex - searchRange),
+		end = Math.min(lines.length - 1, originalIndex + searchRange);
 
 	// Search backwards first (more likely to find the relevant code)
-	for (let i = originalIndex - 1; i >= start; i--) {
-		if (isSignificantCode(lines[i])) {
+	for (let index = originalIndex - 1; index >= start; index--) {
+		if (isSignificantCode(lines[index])) {
 			return {
-				lineIndex: i,
+				lineIndex: index,
 				reason: 'Found significant code above',
-				confidence: 0.7
+				confidence: 0.7,
 			};
 		}
 	}
 
 	// Then search forwards
-	for (let i = originalIndex + 1; i <= end; i++) {
-		if (isSignificantCode(lines[i])) {
+	for (let index = originalIndex + 1; index <= end; index++) {
+		if (isSignificantCode(lines[index])) {
 			return {
-				lineIndex: i,
+				lineIndex: index,
 				reason: 'Found significant code below',
-				confidence: 0.6
+				confidence: 0.6,
 			};
 		}
 	}
@@ -375,30 +368,30 @@ function findNearestSignificantCode(lines, originalIndex, searchRange) {
  * Finds relevant code blocks (function declarations, class methods, etc.)
  */
 function findRelevantCodeBlock(lines, originalIndex, searchRange) {
-	const start = Math.max(0, originalIndex - searchRange);
-	const end = Math.min(lines.length - 1, originalIndex + searchRange);
+	const start = Math.max(0, originalIndex - searchRange),
+		end = Math.min(lines.length - 1, originalIndex + searchRange),
 
-	const blockPatterns = [
+		blockPatterns = [
 		// Function/method declarations
-		/^\s*(public|private|protected|function|def)\s+\w+/i,
-		// Class declarations
-		/^\s*(class|interface|trait)\s+\w+/i,
-		// Important statements
-		/^\s*(if|for|while|switch|try|catch)\s*\(/i,
-		// Variable assignments with significance
-		/^\s*\$\w+\s*=.*[;}]\s*$/
-	];
+			/^\s*(public|private|protected|function|def)\s+\w+/i,
+			// Class declarations
+			/^\s*(class|interface|trait)\s+\w+/i,
+			// Important statements
+			/^\s*(if|for|while|switch|try|catch)\s*\(/i,
+			// Variable assignments with significance
+			/^\s*\$\w+\s*=.*[;}]\s*$/,
+		];
 
-	for (let i = start; i <= end; i++) {
-		const line = lines[i];
+	for (let index = start; index <= end; index++) {
+		const line = lines[index];
 		if (!line) continue;
 
 		for (const pattern of blockPatterns) {
 			if (pattern.test(line)) {
 				return {
-					lineIndex: i,
+					lineIndex: index,
 					reason: 'Found relevant code block',
-					confidence: 0.75
+					confidence: 0.75,
 				};
 			}
 		}
@@ -450,8 +443,8 @@ function isSignificantCode(line) {
  * Calculates smart bounds for code context, ensuring logical grouping
  */
 function calculateSmartBounds(lines, targetIndex, contextLines) {
-	let start = Math.max(0, targetIndex - contextLines);
-	let end = Math.min(lines.length - 1, targetIndex + contextLines);
+	let start = Math.max(0, targetIndex - contextLines),
+		end = Math.min(lines.length - 1, targetIndex + contextLines);
 
 	// Extend context to include complete logical blocks
 	start = expandContextBackward(lines, start, targetIndex);
@@ -465,21 +458,18 @@ function calculateSmartBounds(lines, targetIndex, contextLines) {
  */
 function expandContextBackward(lines, start, targetIndex) {
 	// Look for function/method start
-	for (let i = start; i >= Math.max(0, targetIndex - 10); i--) {
-		const line = lines[i];
+	for (let index = start; index >= Math.max(0, targetIndex - 10); index--) {
+		const line = lines[index];
 		if (line && /^\s*(public|private|protected|function|def)\s+\w+/i.test(line)) {
-			return i;
+			return index;
 		}
 	}
 
 	// Look for complete statement start
-	for (let i = start; i >= Math.max(0, targetIndex - 5); i--) {
-		const line = lines[i];
-		if (line && line.trim() && !line.trim().startsWith('*') && !line.trim().startsWith('//')) {
-			// Check if this looks like start of a statement
-			if (/^\s*\$\w+|^\s*(if|for|while|switch|try)\s*\(/i.test(line)) {
-				return i;
-			}
+	for (let index = start; index >= Math.max(0, targetIndex - 5); index--) {
+		const line = lines[index];
+		if (line && line.trim() && !line.trim().startsWith('*') && !line.trim().startsWith('//') && /^\s*\$\w+|^\s*(if|for|while|switch|try)\s*\(/i.test(line)) {
+			return index;
 		}
 	}
 
@@ -491,11 +481,11 @@ function expandContextBackward(lines, start, targetIndex) {
  */
 function expandContextForward(lines, end, targetIndex) {
 	// Look for end of current block/function
-	let braceLevel = 0;
-	let foundOpenBrace = false;
+	let braceLevel = 0,
+		foundOpenBrace = false;
 
-	for (let i = targetIndex; i <= Math.min(lines.length - 1, targetIndex + 10); i++) {
-		const line = lines[i];
+	for (let index = targetIndex; index <= Math.min(lines.length - 1, targetIndex + 10); index++) {
+		const line = lines[index];
 		if (!line) continue;
 
 		// Count braces to find block end
@@ -506,14 +496,14 @@ function expandContextForward(lines, end, targetIndex) {
 			} else if (char === '}') {
 				braceLevel--;
 				if (foundOpenBrace && braceLevel <= 0) {
-					return Math.min(end + 2, i + 1); // Include closing brace + 1 line
+					return Math.min(end + 2, index + 1); // Include closing brace + 1 line
 				}
 			}
 		}
 
 		// Look for natural statement endings
 		if (line.trim().endsWith(';') || line.trim().endsWith('}')) {
-			return Math.max(end, i);
+			return Math.max(end, index);
 		}
 	}
 

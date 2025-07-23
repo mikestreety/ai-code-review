@@ -1,15 +1,15 @@
 import { Command, Args, Flags } from '@oclif/core';
 import { validateReviewMode, validateLocalOutputFormat, validateOutputFormat } from '../../services/validator.js';
 import { getAvailableLlms } from '../../services/llm-discovery.js';
-import { promptForReviewMode, promptForUrl, promptForBranches, promptForOutputFormat, promptForLlm } from '../../services/prompts.js';
+import { promptForReviewMode, promptForUrl, promptForOutputFormat, promptForLlm } from '../../services/prompts.js';
 import { determineBranchesForLocalReview, performLocalReview, performGitLabReview } from '../../services/review-orchestrator.js';
-import { 
-	getForceReviewMode, 
-	getForceLlmProvider, 
-	getForceOutputFormat, 
+import {
+	getForceReviewMode,
+	getForceLlmProvider,
+	getForceOutputFormat,
 	getForceLocalOutputFormat,
-	shouldForceValue 
-} from '../../services/env-config.js';
+	shouldForceValue,
+} from '../../services/environment-config.js';
 
 export default class Review extends Command {
 	static args = {
@@ -17,26 +17,26 @@ export default class Review extends Command {
 			description: 'GitLab MR URL or local branch name (will prompt if not provided)',
 			required: false,
 		}),
-	}
+	};
 
-	static description = 'Review code changes with AI-powered analysis'
+	static description = 'Review code changes with AI-powered analysis';
 
 	static flags = {
-		help: Flags.help({ char: 'h' }),
-		mode: Flags.string({
+		'help': Flags.help({ char: 'h' }),
+		'mode': Flags.string({
 			char: 'm',
 			description: 'Review mode: local (compare branches) or gitlab (MR review)',
 			options: ['local', 'gitlab'],
 		}),
-		base: Flags.string({
+		'base': Flags.string({
 			char: 'b',
 			description: 'Base branch for local comparison (default: auto-detect)',
 		}),
-		llm: Flags.string({
+		'llm': Flags.string({
 			char: 'l',
 			description: 'LLM provider to use (will prompt if not specified)',
 		}),
-		output: Flags.string({
+		'output': Flags.string({
 			char: 'o',
 			description: 'Output format: gitlab (post to MR), html (generate report), cli (console output)',
 			options: ['gitlab', 'html', 'cli'],
@@ -44,7 +44,7 @@ export default class Review extends Command {
 		'list-llms': Flags.boolean({
 			description: 'List available LLM providers and exit',
 		}),
-	}
+	};
 
 	async run() {
 		const { args, flags } = await this.parse(Review);
@@ -73,7 +73,7 @@ export default class Review extends Command {
 		// Determine review mode
 		let reviewMode = options.mode;
 		const forceMode = getForceReviewMode();
-		
+
 		if (shouldForceValue(forceMode)) {
 			reviewMode = forceMode;
 		} else if (!reviewMode) {
@@ -94,11 +94,7 @@ export default class Review extends Command {
 			llmProvider = await promptForLlm();
 		}
 
-		if (reviewMode === 'local') {
-			await this.handleLocalReview(urlOrBranch, options, llmProvider);
-		} else {
-			await this.handleGitLabReview(urlOrBranch, options, llmProvider);
-		}
+		await (reviewMode === 'local' ? this.handleLocalReview(urlOrBranch, options, llmProvider) : this.handleGitLabReview(urlOrBranch, options, llmProvider));
 	}
 
 	async handleLocalReview(urlOrBranch, options, llmProvider) {
@@ -108,7 +104,7 @@ export default class Review extends Command {
 		// Get output format
 		let outputFormat = options.output;
 		const forceLocalOutput = getForceLocalOutputFormat();
-		
+
 		if (shouldForceValue(forceLocalOutput)) {
 			outputFormat = forceLocalOutput;
 		} else if (!outputFormat) {
@@ -140,7 +136,7 @@ export default class Review extends Command {
 		// Get output format
 		let outputFormat = options.output;
 		const forceOutput = getForceOutputFormat();
-		
+
 		if (shouldForceValue(forceOutput)) {
 			outputFormat = forceOutput;
 		} else if (!outputFormat) {

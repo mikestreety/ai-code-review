@@ -1,34 +1,34 @@
 import inquirer from 'inquirer';
 import { getCurrentBranch, getBaseBranch } from './local-git.js';
 import { getAvailableLlms } from './llm-discovery.js';
-import { 
-	getDefaultReviewMode, 
-	getDefaultLlmProvider, 
-	getDefaultOutputFormat, 
-	getDefaultLocalOutputFormat 
-} from './env-config.js';
+import {
+	getDefaultReviewMode,
+	getDefaultLlmProvider,
+	getDefaultOutputFormat,
+	getDefaultLocalOutputFormat,
+} from './environment-config.js';
 
 export async function promptForReviewMode() {
-	const defaultMode = getDefaultReviewMode();
+	const defaultMode = getDefaultReviewMode(),
 
-	const { reviewMode } = await inquirer.prompt([
-		{
-			type: 'list',
-			name: 'reviewMode',
-			message: 'Choose review mode:',
-			choices: [
-				{
-					name: 'local - Review local branch changes (compare current branch with base)',
-					value: 'local'
-				},
-				{
-					name: 'gitlab - Review GitLab Merge Request (requires MR URL)',
-					value: 'gitlab'
-				}
-			],
-			default: defaultMode
-		}
-	]);
+		{ reviewMode } = await inquirer.prompt([
+			{
+				type: 'list',
+				name: 'reviewMode',
+				message: 'Choose review mode:',
+				choices: [
+					{
+						name: 'local - Review local branch changes (compare current branch with base)',
+						value: 'local',
+					},
+					{
+						name: 'gitlab - Review GitLab Merge Request (requires MR URL)',
+						value: 'gitlab',
+					},
+				],
+				default: defaultMode,
+			},
+		]);
 
 	return reviewMode;
 }
@@ -47,56 +47,56 @@ export async function promptForUrl() {
 					return 'Please enter a valid GitLab merge request URL';
 				}
 				return true;
-			}
-		}
+			},
+		},
 	]);
 
 	return url.trim();
 }
 
 export async function promptForBranches() {
-	const currentBranch = await getCurrentBranch();
-	const suggestedBase = await getBaseBranch(currentBranch);
+	const currentBranch = await getCurrentBranch(),
+		suggestedBase = await getBaseBranch(currentBranch),
 
-	const { baseBranch } = await inquirer.prompt([
-		{
-			type: 'input',
-			name: 'baseBranch',
-			message: `Base branch to compare against (current: ${currentBranch}):`,
-			default: suggestedBase,
-			validate: (input) => {
-				if (!input.trim()) {
-					return 'Please enter a base branch name';
-				}
-				return true;
-			}
-		}
-	]);
+		{ baseBranch } = await inquirer.prompt([
+			{
+				type: 'input',
+				name: 'baseBranch',
+				message: `Base branch to compare against (current: ${currentBranch}):`,
+				default: suggestedBase,
+				validate: (input) => {
+					if (!input.trim()) {
+						return 'Please enter a base branch name';
+					}
+					return true;
+				},
+			},
+		]);
 
 	return { currentBranch, baseBranch };
 }
 
 export async function promptForOutputFormat(isLocal = false) {
-	const defaultFormat = isLocal ? getDefaultLocalOutputFormat() : getDefaultOutputFormat();
-	
-	const choices = [];
-	
+	const defaultFormat = isLocal ? getDefaultLocalOutputFormat() : getDefaultOutputFormat(),
+
+		choices = [];
+
 	if (!isLocal) {
 		choices.push({
 			name: 'gitlab - Post comments directly to GitLab MR',
-			value: 'gitlab'
+			value: 'gitlab',
 		});
 	}
-	
+
 	choices.push(
 		{
 			name: 'html - Generate beautiful HTML report file',
-			value: 'html'
+			value: 'html',
 		},
 		{
 			name: 'cli - Show linter-style console output',
-			value: 'cli'
-		}
+			value: 'cli',
+		},
 	);
 
 	const { outputFormat } = await inquirer.prompt([
@@ -105,8 +105,8 @@ export async function promptForOutputFormat(isLocal = false) {
 			name: 'outputFormat',
 			message: 'Choose output format:',
 			choices,
-			default: defaultFormat
-		}
+			default: defaultFormat,
+		},
 	]);
 
 	return outputFormat;
@@ -124,21 +124,21 @@ export async function promptForLlm() {
 		return availableLlms[0];
 	}
 
-	const defaultLlm = getDefaultLlmProvider();
-	const defaultValue = (defaultLlm && availableLlms.includes(defaultLlm)) ? defaultLlm : availableLlms[0];
+	const defaultLlm = getDefaultLlmProvider(),
+		defaultValue = (defaultLlm && availableLlms.includes(defaultLlm)) ? defaultLlm : availableLlms[0],
 
-	const { llmProvider } = await inquirer.prompt([
-		{
-			type: 'list',
-			name: 'llmProvider',
-			message: 'Choose LLM provider:',
-			choices: availableLlms.map(llm => ({
-				name: llm,
-				value: llm
-			})),
-			default: defaultValue
-		}
-	]);
+		{ llmProvider } = await inquirer.prompt([
+			{
+				type: 'list',
+				name: 'llmProvider',
+				message: 'Choose LLM provider:',
+				choices: availableLlms.map(llm => ({
+					name: llm,
+					value: llm,
+				})),
+				default: defaultValue,
+			},
+		]);
 
 	return llmProvider;
 }
