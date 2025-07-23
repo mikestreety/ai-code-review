@@ -12,8 +12,23 @@ function escapeBackticks(text) {
 }
 
 function loadPromptTemplate() {
-	const promptPath = path.join(__dirname, '..', 'prompts', 'code-review.txt');
-	return readFileSync(promptPath, 'utf8');
+	// Try multiple path resolutions for better compatibility with npx
+	const possiblePaths = [
+		path.join(__dirname, '..', 'prompts', 'code-review.txt'),
+		path.join(process.cwd(), 'prompts', 'code-review.txt'),
+		path.join(path.dirname(__dirname), 'prompts', 'code-review.txt')
+	];
+	
+	for (const promptPath of possiblePaths) {
+		try {
+			return readFileSync(promptPath, 'utf8');
+		} catch (error) {
+			// Continue to next path
+			continue;
+		}
+	}
+	
+	throw new Error(`Could not find code-review.txt prompt file. Searched paths: ${possiblePaths.join(', ')}`);
 }
 
 export async function runCodeReview(llmName, codeDiff, fullFileContext) {
