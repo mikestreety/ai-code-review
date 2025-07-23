@@ -233,10 +233,10 @@ export function generateHtmlReport(parsedReview, llmChoice, fileContext = null) 
 }
 
 export function outputCliFormat(parsedReview, llmChoice) {
-	const stats = getReviewStatistics(parsedReview);
+	const stats = getReviewStatistics(parsedReview),
 
-	// Group comments by file for ESLint-style output
-	const commentsByFile = new Map();
+		// Group comments by file for ESLint-style output
+		commentsByFile = new Map();
 	for (const comment of parsedReview.comments) {
 		if (!commentsByFile.has(comment.file)) {
 			commentsByFile.set(comment.file, []);
@@ -247,14 +247,22 @@ export function outputCliFormat(parsedReview, llmChoice) {
 	// Color mapping for different comment types (matching HTML colors)
 	const getCommentColor = (label) => {
 		switch (label.toLowerCase()) {
-			case 'issue': return chalk.red;
-			case 'suggestion': return chalk.blue;
-			case 'todo': return chalk.yellow;
-			case 'praise': return chalk.green;
-			case 'question': return chalk.magenta;
-			case 'nitpick': return chalk.gray;
-			case 'note': return chalk.cyan;
-			default: return chalk.white;
+			case 'issue': { return chalk.red;
+			}
+			case 'suggestion': { return chalk.blue;
+			}
+			case 'todo': { return chalk.yellow;
+			}
+			case 'praise': { return chalk.green;
+			}
+			case 'question': { return chalk.magenta;
+			}
+			case 'nitpick': { return chalk.gray;
+			}
+			case 'note': { return chalk.cyan;
+			}
+			default: { return chalk.white;
+			}
 		}
 	};
 
@@ -270,25 +278,25 @@ export function outputCliFormat(parsedReview, llmChoice) {
 	// Output in ESLint style: filename followed by line-by-line issues
 	for (const [fileName, comments] of commentsByFile) {
 		console.log(chalk.underline(fileName));
-		
+
 		// Sort comments by line number
 		comments.sort((a, b) => (a.line || 0) - (b.line || 0));
-		
+
 		for (const comment of comments) {
-			const labelMatch = comment.comment.match(/^(\w+)(\s*\([^)]+\))?:/);
-			const label = labelMatch ? labelMatch[1] : 'note';
-			const commentText = comment.comment.replace(/^(\w+)(\s*\([^)]+\))?:\s*/, '');
-			const colorFn = getCommentColor(label);
-			
-			console.log(`  ${chalk.dim(comment.line || '?')}  ${colorFn(label)}  ${commentText}`);
+			const labelMatch = comment.comment.match(/^(\w+)(\s*\([^)]+\))?:/),
+				label = labelMatch ? labelMatch[1] : 'note',
+				commentText = comment.comment.replace(/^(\w+)(\s*\([^)]+\))?:\s*/, ''),
+				colorFunction = getCommentColor(label);
+
+			console.log(`  ${chalk.dim(comment.line || '?')}  ${colorFunction(label)}  ${commentText}`);
 		}
 		console.log('');
 	}
 
-	const problemText = stats.blockingIssues > 0 ? 
+	const problemText = stats.blockingIssues > 0 ?
 		chalk.red(`✖ ${stats.totalComments} problems (${stats.blockingIssues} errors, ${stats.suggestions} warnings)`) :
 		chalk.yellow(`⚠ ${stats.totalComments} warnings`);
-	
+
 	console.log(problemText);
 	console.log('');
 }
