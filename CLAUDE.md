@@ -52,6 +52,7 @@ This document establishes the mandatory workflow for all feature requests and im
 - Update help text and command descriptions as needed
 
 ### 8. Final Commit & Push
+- **MANDATORY**: Run `npm run lint` before committing to ensure code quality
 - Create comprehensive commit message following existing patterns
 - Include co-authorship: `Co-Authored-By: Claude <noreply@anthropic.com>`
 - Push to remote repository
@@ -93,8 +94,9 @@ node ./bin/run.js setup
 5. ✅ Analyze and implement ALL self-review feedback
 6. ✅ Verify no regressions in existing functionality
 7. ✅ Update documentation appropriately
-8. ✅ Provide comprehensive commit message
-9. ✅ Push branch and prepare for main merge
+8. ✅ Run `npm run lint` before committing
+9. ✅ Provide comprehensive commit message
+10. ✅ Push branch and prepare for main merge
 
 ### Success Criteria
 - All self-review feedback implemented
