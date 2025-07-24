@@ -20,6 +20,7 @@
   "scripts": {
     "start": "node ./bin/run.js",
     "lint": "npm run eslint:fix",
+    "lint:check": "npm run eslint:dry-run",
     "eslint:dry-run": "eslint ./ --color --cache --config eslint.config.js --cache-location .cache/ --cache-strategy content",
     "eslint:fix": "npm run eslint:dry-run -- --fix",
     "test": "vitest",
