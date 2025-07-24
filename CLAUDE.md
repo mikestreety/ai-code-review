@@ -51,14 +51,32 @@ This document establishes the mandatory workflow for all feature requests and im
 - Add usage examples for new functionality
 - Update help text and command descriptions as needed
 
-### 8. Final Commit & Push
-- **MANDATORY**: Run `npm run lint` before committing to ensure code quality
+### 8. Quality Assurance & Pre-Commit Checks
+- **MANDATORY**: Run `npm run lint` to fix code style issues
+- **MANDATORY**: Run `npm test` to ensure all tests pass (53+ tests)
+- **MANDATORY**: Run `npm run test:coverage` to verify coverage reports
+- Ensure no regressions in existing functionality
+- Verify all new code is properly tested
+
+### 9. Final Commit & Push
 - Create comprehensive commit message following existing patterns
 - Include co-authorship: `Co-Authored-By: Claude <noreply@anthropic.com>`
 - Push to remote repository
 - Ready for merge to main
 
 ## Testing Commands for Self-Review
+
+### Pre-Commit Quality Checks (MANDATORY)
+```bash
+# Fix linting issues
+npm run lint
+
+# Run all tests (must pass)
+npm test
+
+# Generate coverage reports
+npm run test:coverage
+```
 
 ### Local Review (Required)
 ```bash
@@ -94,14 +112,18 @@ ruck setup
 5. ✅ Analyze and implement ALL self-review feedback
 6. ✅ Verify no regressions in existing functionality
 7. ✅ Update documentation appropriately
-8. ✅ Run `npm run lint` before committing
-9. ✅ Provide comprehensive commit message
-10. ✅ Push branch and prepare for main merge
+8. ✅ Run `npm run lint` to fix code style issues
+9. ✅ Run `npm test` to ensure all 53+ tests pass
+10. ✅ Run `npm run test:coverage` to verify coverage
+11. ✅ Provide comprehensive commit message
+12. ✅ Push branch and prepare for main merge
 
 ### Success Criteria
 - All self-review feedback implemented
 - No blocking issues remaining
-- All existing tests/functionality preserved
+- All existing tests/functionality preserved (53+ tests passing)
+- Linting issues resolved (`npm run lint` passes)
+- Test coverage maintained or improved
 - Documentation updated
 - Clean, professional commit history
 
