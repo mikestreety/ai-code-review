@@ -37,13 +37,6 @@ const TIMEOUT_5_MINUTES = 5 * 60 * 1000,
 				timeout: TIMEOUT_10_MINUTES,
 				maxBuffer: MAX_BUFFER_10MB,
 			},
-			copilot: {
-				cliPath: 'gh',
-				args: ['copilot', 'suggest', '--type', 'shell'],
-				useStdin: true,
-				timeout: TIMEOUT_5_MINUTES,
-				maxBuffer: MAX_BUFFER_10MB,
-			},
 			chatgpt: {
 				cliPath: 'chatgpt',
 				args: ['--model', 'gpt-4'],

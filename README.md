@@ -10,7 +10,7 @@ AI-powered code reviews for GitLab Merge Requests and local git branches using v
 
 ## Features
 
-- 🤖 **Multi-LLM Support**: Works with Claude, Gemini, OpenAI, Ollama, ChatGPT, Llama, and GitHub Copilot
+- 🤖 **Multi-LLM Support**: Works with Claude, Gemini, OpenAI, Ollama, ChatGPT, and Llama
 - 🌍 **Dual Mode Support**: Review GitLab Merge Requests OR local git branch changes
 - 🔍 **Smart Detection**: Automatically detects available LLM binaries and git branches
 - 📝 **Comprehensive Reviews**: Provides detailed code analysis with line-specific comments
