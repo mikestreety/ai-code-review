@@ -21,7 +21,11 @@
     "start": "node ./bin/run.js",
     "lint": "npm run eslint:fix",
     "eslint:dry-run": "eslint ./ --color --cache --config eslint.config.js --cache-location .cache/ --cache-strategy content",
-    "eslint:fix": "npm run eslint:dry-run -- --fix"
+    "eslint:fix": "npm run eslint:dry-run -- --fix",
+    "test": "vitest",
+    "test:watch": "vitest --watch",
+    "test:coverage": "vitest --coverage",
+    "test:ui": "vitest --ui"
   },
   "dependencies": {
     "@lintkit/eslint-config": "^2.1.0",
@@ -42,5 +46,9 @@
     "plugins": [
       "@oclif/plugin-help"
     ]
+  },
+  "devDependencies": {
+    "@vitest/ui": "^3.2.4",
+    "vitest": "^3.2.4"
   }
 }
