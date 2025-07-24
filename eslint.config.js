@@ -11,9 +11,20 @@ const cliConfig = Object.values(config),
 			'unicorn/no-process-exit': 'off', // Allow process.exit in CLI apps
 			'unicorn/prefer-top-level-await': 'off', // Allow main() function pattern
 		},
+	},
+
+	// Override rules for test files
+	testOverride = {
+		files: ['test/**/*.js', '**/*.test.js'],
+		rules: {
+			'no-unused-vars': 'off', // Allow unused test imports like 'vi'
+			'playwright/no-standalone-expect': 'off', // Allow expect outside test blocks for Vitest
+			'unicorn/prevent-abbreviations': 'off', // Allow abbreviations in tests like tempDir
+			'unicorn/prefer-event-target': 'off', // Allow EventEmitter mocks in tests
+		},
 	};
 
-// Add CLI-specific overrides
-cliConfig.push(cliOverride);
+// Add CLI-specific and test overrides
+cliConfig.push(cliOverride, testOverride);
 
 export default cliConfig;
