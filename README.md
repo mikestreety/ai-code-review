@@ -10,7 +10,7 @@ AI-powered code reviews for GitLab Merge Requests and local git branches using v
 
 ## Features
 
-- 🤖 **Multi-LLM Support**: Works with Claude, Gemini, OpenAI, Ollama (enhanced), ChatGPT, and Llama
+- 🤖 **Multi-LLM Support**: Works with Claude, Gemini, OpenAI, ChatGPT, and Ollama (enhanced with text-to-JSON conversion)
 - 🌍 **Dual Mode Support**: Review GitLab Merge Requests OR local git branch changes
 - 🔍 **Smart Detection**: Automatically detects available LLM binaries and git branches
 - 📝 **Comprehensive Reviews**: Provides detailed code analysis with line-specific comments
@@ -133,7 +133,7 @@ Arguments:
 Options:
   -m, --mode <mode>      Review mode: local (compare branches) or gitlab (MR review)
   -b, --base <branch>    Base branch for local comparison (default: auto-detect)
-  -l, --llm <provider>   LLM provider: claude, gemini, openai, ollama, chatgpt, llama, copilot
+  -l, --llm <provider>   LLM provider: claude, gemini, openai, ollama, chatgpt
   -o, --output <format>  Output format: gitlab (GitLab mode), html, cli
   --list-llms            List available LLM providers and exit
   -h, --help             Display help information
@@ -225,17 +225,20 @@ ruck review <gitlab-url> --mode gitlab --output gitlab
 
 #### 5. LLM Provider Examples
 ```bash
-# Use Claude (recommended)
+# Use Claude (recommended for cloud)
 ruck review --mode local --llm claude
 
 # Use Gemini
 ruck review --mode local --llm gemini
 
-# Use OpenAI
+# Use OpenAI (requires API key)
 ruck review --mode local --llm openai
 
-# Use local Ollama
+# Use local Ollama (recommended for local models)
 ruck review --mode local --llm ollama
+
+# Use ChatGPT (requires TOKEN env var)
+ruck review --mode local --llm chatgpt
 ```
 
 #### 6. Check Available Providers
@@ -256,7 +259,7 @@ ruck list-llms
 | `[url_or_branch]` | Argument | *prompted* | GitLab MR URL or local branch name |
 | `-m, --mode <mode>` | Option | *prompted* | Review mode: `local` or `gitlab` |
 | `-b, --base <branch>` | Option | *auto-detect* | Base branch for local comparison |
-| `-l, --llm <provider>` | Option | *prompted* | LLM provider: `claude`, `gemini`, `openai`, `ollama`, `chatgpt`, `llama`, `copilot` |
+| `-l, --llm <provider>` | Option | *prompted* | LLM provider: `claude`, `gemini`, `openai`, `ollama`, `chatgpt` |
 | `-o, --output <format>` | Option | *prompted* | Output format: `gitlab` (GitLab mode only), `html`, `cli` |
 | `--list-llms` | Flag | - | List available LLM providers and exit |
 | `-h, --help` | Flag | - | Display help information |
@@ -297,15 +300,23 @@ The tool will interactively prompt for missing required information:
 
 The tool automatically detects which LLM CLI tools are installed:
 
-| Provider | CLI Command | Installation |
-|----------|-------------|--------------|
-| Claude | `claude` | [Claude CLI Setup](https://claude.ai/code) |
-| Gemini | `gemini` | [Gemini CLI Setup](https://ai.google.dev/) |
-| OpenAI | `openai` | [OpenAI CLI Setup](https://platform.openai.com/docs/guides/cli) |
-| Ollama | `ollama` | [Ollama Setup](https://ollama.ai/) |
-| ChatGPT | `chatgpt` | `npm install -g chatgpt-cli` |
-| Llama | `llama` | Various implementations available |
-| Copilot | `gh` | [GitHub CLI Setup](https://cli.github.com/) |
+| Provider | CLI Command | Status | Installation |
+|----------|-------------|--------|--------------|
+| Claude | `claude` | ✅ Fully supported | [Claude CLI Setup](https://claude.ai/code) |
+| Gemini | `gemini` | ✅ Fully supported | [Gemini CLI Setup](https://ai.google.dev/) |
+| OpenAI | `openai` | ✅ Requires API key | [OpenAI CLI Setup](https://platform.openai.com/docs/guides/cli) |
+| ChatGPT | `chatgpt` | ✅ Requires TOKEN env | `npm install -g chatgpt-cli` |
+| Ollama | `ollama` | ✅ Enhanced support | [Ollama Setup](https://ollama.ai/) - **Recommended for local LLMs** |
+
+#### Compatibility Notes
+- **Ollama**: Enhanced with automatic text-to-JSON conversion for seamless integration
+- **OpenAI**: Requires `OPENAI_API_KEY` environment variable
+- **ChatGPT**: Requires `TOKEN` environment variable with OpenAI API key
+- **Local LLMs**: Use Ollama for best compatibility with various models (Llama, Phi, Gemma, etc.)
+
+#### Unsupported LLMs
+- **Llama CLI** (`llama-cli`): Incompatible with stdin-based architecture, designed for interactive use
+- **GitHub Copilot**: Not designed for code review, only for command suggestions
 
 ## Complete Workflow
 
@@ -398,6 +409,47 @@ The tool supports three output formats:
 - **Linter-style format**: Similar to ESLint output with `file:line label: message`
 - **Summary statistics**: Quick overview of issues found
 - **Console-friendly**: Perfect for CI/CD pipelines and terminal workflows
+
+## LLM Compatibility & Architecture
+
+### How LLM Integration Works
+
+Ruck integrates with LLM providers through their CLI tools using a standard architecture:
+
+1. **Process Spawning**: Spawns the LLM CLI process (e.g., `claude`, `gemini`, `ollama`)
+2. **Stdin Communication**: Sends the code review prompt via stdin
+3. **Output Parsing**: Expects structured JSON output for processing
+4. **Timeout Handling**: Manages process timeouts and error handling
+
+### Compatible LLM Requirements
+
+For an LLM to work with Ruck, it must:
+- ✅ Accept input via stdin (pipe support)
+- ✅ Process prompts in non-interactive mode
+- ✅ Output structured data (JSON preferred)
+- ✅ Handle timeouts gracefully
+- ✅ Return consistent response format
+
+### Why Some LLMs Don't Work
+
+#### Llama CLI (`llama-cli`)
+- ❌ **Interactive Design**: Built for chat-style interactions
+- ❌ **Stdin Issues**: EPIPE errors when reading from stdin
+- ❌ **Complex Arguments**: Requires model files and complex setup
+- ❌ **Output Format**: Doesn't provide structured JSON output
+
+#### GitHub Copilot (`gh copilot`)
+- ❌ **Wrong Purpose**: Designed for shell command suggestions
+- ❌ **Limited Scope**: Not built for code review analysis
+- ❌ **API Mismatch**: Different use case than code review
+
+### Ollama Enhancement
+
+Ollama receives special treatment with enhanced text-to-JSON conversion:
+- 📝 **Text Processing**: Converts natural language responses to JSON
+- 🔍 **Content Extraction**: Identifies file references, line numbers, suggestions
+- 📊 **Structure Creation**: Builds proper review objects with comments and ratings
+- 🎯 **Fallback Handling**: Graceful handling of various text formats
 
 ## Troubleshooting
 

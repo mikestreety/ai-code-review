@@ -60,7 +60,7 @@ export default class Review extends Command {
 	async listAvailableLlms() {
 		const availableLlms = await getAvailableLlms();
 		if (availableLlms.length === 0) {
-			this.log('No LLM binaries found. Please install one of: claude, gemini, openai, ollama, chatgpt, llama, or gh (for copilot)');
+			this.log('No LLM binaries found. Please install one of: claude, gemini, openai, ollama, or chatgpt');
 		} else {
 			this.log('Available LLM providers:');
 			for (const llm of availableLlms) {

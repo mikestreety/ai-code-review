@@ -44,13 +44,6 @@ const TIMEOUT_5_MINUTES = 5 * 60 * 1000,
 				timeout: TIMEOUT_5_MINUTES,
 				maxBuffer: MAX_BUFFER_10MB,
 			},
-			llama: {
-				cliPath: 'llama',
-				args: ['--model', 'llama3.2'],
-				useStdin: true,
-				timeout: TIMEOUT_10_MINUTES,
-				maxBuffer: MAX_BUFFER_10MB,
-			},
 		},
 		tempDirPrefix: 'gitlab-review-',
 	};
