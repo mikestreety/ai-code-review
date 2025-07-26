@@ -73,10 +73,14 @@ This document establishes the mandatory workflow for all feature requests and im
 - The entry should be added to the appropriate category (e.g., `#### Feature`, `#### Fix`, `#### Refactor`).
 
 ### When tagging a new release:
+- **MUST** run `npm run lint` and `npm run test` and fix any issues.
 - **MUST** move all items from `UPCOMING.md` to `CHANGELOG.md`.
 - The items should be added to a new version section (e.g., `## v1.2.0`).
-- The `UPCOMING.md` file should be cleared.
-- This should be done in the same commit as the new tag.
+- **MUST** update the version in `package.json`.
+- **MUST** run `npm install` to update `package-lock.json`.
+- **MUST** commit with a `release:` prefix (e.g., `release: v1.2.0`).
+- **MUST** create the new tag (e.g., `git tag v1.2.0`).
+- **MUST** push the commit and the tag to the remote repository (e.g., `git push origin main --tags`).
 
 ## Testing Commands for Self-Review
 
