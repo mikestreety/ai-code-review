@@ -2,12 +2,60 @@
 name: Publish to NPM
 
 on:
-  release:
-    types: [published]
+  push:
+    tags:
+      - 'v*'
+    paths:
+      - 'bin/**'
+      - 'src/**'
+      - 'prompts/**'
+      - '.github/workflows/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'README.md'
+      - 'vitest.config.js'
+      - 'eslint.config.js'
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run linting
+        run: npm run lint
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm run test
+
   publish:
     runs-on: ubuntu-latest
+    needs: [lint, test]
     permissions:
       contents: read
       id-token: write
@@ -18,15 +66,12 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
           registry-url: 'https://registry.npmjs.org'
           cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
-
-      - name: Run linting
-        run: npm run lint
 
       - name: Extract version from tag
         id: version
@@ -49,5 +94,5 @@ jobs:
           echo "## 📦 Published to NPM" >> $GITHUB_STEP_SUMMARY
           echo "- **Package**: [@mikestreety/ruck](https://www.npmjs.com/package/@mikestreety/ruck)" >> $GITHUB_STEP_SUMMARY
           echo "- **Version**: ${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Install**: \`npm install -g @mikestreety/ruck\`" >> $GITHUB_STEP_SUMMARY
-          echo "- **Run**: \`npx @mikestreety/ruck\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Install**: `npm install -g @mikestreety/ruck`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Run**: `npx @mikestreety/ruck`" >> $GITHUB_STEP_SUMMARY
