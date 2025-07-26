@@ -1,7 +1,11 @@
 {
   "name": "@mikestreety/ruck",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Automated GitLab MR code reviews using Gemini or Claude",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mikestreety/ruck.git"
+  },
   "main": "./bin/run.js",
   "type": "module",
   "bin": {
