@@ -34,10 +34,6 @@ ruck --help
 ### NPX Usage (No Installation)
 
 ```bash
-# Run directly from GitHub (works immediately)
-npx github:mikestreety/ruck
-
-# Or run from npm registry (after package is published)
 npx @mikestreety/ruck
 ```
 
