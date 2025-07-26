@@ -64,6 +64,19 @@ This document establishes the mandatory workflow for all feature requests and im
 - Push to remote repository
 - Ready for merge to main
 
+## Changelog Management
+
+### For every new feature, fix, or refactor:
+- **MUST** add a new entry to the `UPCOMING.md` file.
+- The entry should be a single line, in the format: `- [Short description of the change](link-to-commit)`
+- The entry should be added to the appropriate category (e.g., `#### Feature`, `#### Fix`, `#### Refactor`).
+
+### When tagging a new release:
+- **MUST** move all items from `UPCOMING.md` to `CHANGELOG.md`.
+- The items should be added to a new version section (e.g., `## v1.2.0`).
+- The `UPCOMING.md` file should be cleared.
+- This should be done in the same commit as the new tag.
+
 ## Testing Commands for Self-Review
 
 ### Pre-Commit Quality Checks (MANDATORY)
