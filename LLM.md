@@ -59,6 +59,7 @@ This document establishes the mandatory workflow for all feature requests and im
 - Verify all new code is properly tested
 
 ### 9. Final Commit & Push
+- **MANDATORY**: Run `npm run lint` to fix code style issues before committing.
 - Create comprehensive commit message following existing patterns
 - Include co-authorship: `Co-Authored-By: Claude <noreply@anthropic.com>`
 - Push to remote repository

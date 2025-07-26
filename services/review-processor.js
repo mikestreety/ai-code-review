@@ -89,9 +89,11 @@ function convertOllamaTextToJson(textReview) {
 	reviewObject.suggestions = suggestionLines.slice(0, 3).map(line => line.trim());
 
 	// Determine overall rating based on content
-	const hasIssues = textReview.toLowerCase().includes('issue') ||
-	  textReview.toLowerCase().includes('problem') ||
-	  textReview.toLowerCase().includes('error');
+	const hasIssues =
+		textReview.toLowerCase().includes('issue') ||
+		textReview.toLowerCase().includes('problem') ||
+		textReview.toLowerCase().includes('error')
+	;
 
 	reviewObject.overall_rating = hasIssues ? 'needs_improvement' : 'good';
 
